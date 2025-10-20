@@ -1,0 +1,507 @@
+/* ==========================================
+   🎨 GLOBAL VARIABLES & RESET
+   ========================================== */
+:root {
+  --primary: #007bff;
+  --primary-dark: #0056d2;
+  --accent: #1a73e8;
+  --bg-light: #f5f5f5;
+  --bg-dark: #0d0d0f;
+  --card-light: #ffffff;
+  --card-dark: #1b1b1e;
+  --text-light: #1a1a1a;
+  --text-dark: #f2f2f2;
+  --border: #e0e0e0;
+  --border-dark: #2a2a2a;
+  --radius: 10px;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --transition: all 0.25s ease;
+  --max-width: 1320px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  font-family: "Inter", "Poppins", sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-light);
+  color: var(--text-light);
+  transition: var(--transition);
+  scroll-behavior: smooth;
+}
+
+/* ==========================================
+   🌙 DARK THEME BASE
+   ========================================== */
+[data-theme="dark"] {
+  background-color: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+[data-theme="dark"] body {
+  background-color: var(--bg-dark);
+}
+
+/* ==========================================
+   🧭 NAVBAR
+   ========================================== */
+.navbar {
+  background-color: #111;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: var(--transition);
+}
+
+[data-theme="dark"] .navbar {
+  background-color: #151517;
+  border-bottom: 1px solid #222;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  color: var(--primary) !important;
+  letter-spacing: 0.4px;
+}
+
+.nav-link {
+  color: #ddd !important;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.nav-link:hover {
+  color: var(--primary) !important;
+}
+
+/* ==========================================
+   📦 PRODUCT CARDS
+   ========================================== */
+.product-card {
+  background-color: var(--card-light);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: var(--transition);
+  border: 1px solid var(--border);
+}
+
+[data-theme="dark"] .product-card {
+  background-color: var(--card-dark);
+  border: 1px solid var(--border-dark);
+  box-shadow: none;
+}
+
+.product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.product-card img {
+  height: 220px;
+  object-fit: cover;
+  border-bottom: 1px solid var(--border);
+}
+
+[data-theme="dark"] .product-card img {
+  border-bottom: 1px solid #333;
+}
+
+.product-card h6 {
+  font-weight: 600;
+  margin: 10px 0 6px;
+}
+
+.product-card .price {
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+/* ==========================================
+   🛒 CART & ORDER SUMMARY
+   ========================================== */
+.cart-item {
+  background-color: var(--card-light);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  transition: var(--transition);
+}
+
+[data-theme="dark"] .cart-item {
+  background-color: var(--card-dark);
+  border: 1px solid var(--border-dark);
+}
+
+.cart-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.order-summary {
+  background-color: var(--card-light);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+[data-theme="dark"] .order-summary {
+  background-color: var(--card-dark);
+  border: 1px solid var(--border-dark);
+}
+
+/* ==========================================
+   🧾 BUTTONS
+   ========================================== */
+.btn {
+  border-radius: var(--radius);
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+}
+
+.btn-outline-light:hover {
+  background-color: var(--primary);
+  color: #fff;
+}
+
+.btn-outline-danger:hover {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+/* ==========================================
+   🧩 INPUTS & FORMS
+   ========================================== */
+input,
+select,
+textarea {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  outline: none;
+  transition: var(--transition);
+  background-color: #fff;
+  color: var(--text-light);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background-color: #2a2a2d;
+  color: var(--text-dark);
+  border-color: #444;
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus,
+[data-theme="dark"] textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* ==========================================
+   🔢 PAGINATION
+   ========================================== */
+.pagination .page-link {
+  color: var(--primary);
+  border-radius: 6px;
+  margin: 0 3px;
+  border: 1px solid var(--border);
+  transition: var(--transition);
+}
+
+.pagination .page-item.active .page-link {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.pagination .page-link:hover {
+  background-color: var(--primary);
+  color: #fff;
+}
+
+/* ==========================================
+   ⚡ TOASTS / ALERTS
+   ========================================== */
+.alert {
+  border-radius: var(--radius);
+  padding: 10px 16px;
+}
+
+/* ==========================================
+   🌗 DARK MODE TOGGLE
+   ========================================== */
+.dark-toggle {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.3rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.dark-toggle:hover {
+  transform: rotate(20deg);
+  color: var(--primary);
+}
+
+/* ==========================================
+   ⚙️ SEARCH DROPDOWN
+   ========================================== */
+.list-group-item {
+  font-size: 0.9rem;
+  border: none;
+  border-bottom: 1px solid #eee;
+  background-color: #fff;
+}
+
+.list-group-item:hover {
+  background-color: #f5f5f5;
+}
+
+[data-theme="dark"] .list-group-item {
+  background-color: #1f1f21;
+  color: #ddd;
+  border-color: #2e2e2e;
+}
+
+[data-theme="dark"] .list-group-item:hover {
+  background-color: #2a2a2d;
+}
+
+/* ==========================================
+   🧍 FOOTER
+   ========================================== */
+footer {
+  background-color: #111;
+  color: #bbb;
+  text-align: center;
+  padding: 30px 0;
+  margin-top: 60px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] footer {
+  background-color: #151517;
+  border-top: 1px solid #222;
+}
+
+footer a {
+  color: #ccc;
+  margin: 0 8px;
+  transition: var(--transition);
+}
+
+footer a:hover {
+  color: var(--primary);
+}
+
+/* ==========================================
+   🧱 UTILITIES
+   ========================================== */
+.page-header {
+  text-align: center;
+  margin: 40px 0 25px;
+}
+
+.container {
+  max-width: var(--max-width);
+}
+
+body {
+  padding-top: 80px;
+}
+
+.card,
+.cart-item,
+.btn,
+.product-card,
+.navbar,
+footer {
+  transition: var(--transition);
+}
+/* ==========================================
+   🧠 DARK MODE TEXT FIXES
+   ========================================== */
+
+/* Global text colors for dark theme */
+[data-theme="dark"],
+[data-theme="dark"] body,
+[data-theme="dark"] p,
+[data-theme="dark"] span,
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+[data-theme="dark"] label,
+[data-theme="dark"] li,
+[data-theme="dark"] .text-dark,
+[data-theme="dark"] .card-body,
+[data-theme="dark"] .form-label {
+  color: var(--text-dark) !important;
+}
+
+/* Links and hover states */
+[data-theme="dark"] a {
+  color: #89b4ff !important;
+  text-decoration: none;
+}
+
+[data-theme="dark"] a:hover {
+  color: #b0c9ff !important;
+  text-decoration: underline;
+}
+
+/* Buttons */
+[data-theme="dark"] .btn {
+  color: #f1f1f1;
+}
+
+[data-theme="dark"] .btn-outline-light {
+  border-color: #aaa;
+}
+
+[data-theme="dark"] .btn-outline-light:hover {
+  background-color: var(--primary);
+  color: #fff;
+}
+
+/* Cards & headers */
+[data-theme="dark"] .card {
+  background-color: #1c1c1e;
+  color: var(--text-dark);
+  border-color: #333;
+}
+
+/* Form labels and placeholders */
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #aaa;
+}
+
+/* Table / pagination text */
+[data-theme="dark"] .pagination .page-link {
+  color: #cfcfcf;
+}
+
+[data-theme="dark"] .pagination .page-item.active .page-link {
+  color: #fff;
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* Toasts / alerts */
+[data-theme="dark"] .alert {
+  background-color: #242427;
+  color: var(--text-dark);
+  border: 1px solid #333;
+}
+/* =========================
+   RESPONSIVE FIXES
+   ========================= */
+
+/* Ensure images are not taller than their container on narrow screens */
+.product-card img,
+.product-details img,
+.cart-item img {
+  width: 100%;
+  height: auto;
+  max-height: 320px;
+  object-fit: cover;
+}
+
+/* Product card text wrapping and truncation */
+.product-card .card-body { padding: 12px; }
+.product-card .text-truncate {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Make search bar full width on small screens */
+@media (max-width: 767.98px) {
+  .navbar .form-control { font-size: 0.95rem; }
+  .navbar form.d-flex { width: 100% !important; padding: 0.25rem 0; }
+  .navbar .btn.btn-primary { margin-left: 6px; }
+
+  /* Collapse right side into smaller icons */
+  .navbar .nav-link { padding-left: .5rem; padding-right: .5rem; }
+  .navbar .navbar-brand { font-size: 1.05rem; }
+
+  /* Product grid: 2 columns on small screens */
+  .col-6.col-md-4.col-lg-3 { flex: 0 0 50%; max-width: 50%; }
+  .container { padding-left: 12px; padding-right: 12px; }
+
+  /* Product detail: stack vertically */
+  .product-details .row { flex-direction: column; }
+  .product-details .col-md-5, .product-details .col-md-7 {
+    width: 100%; max-width: 100%;
+  }
+
+  /* Cart item layout stacks */
+  .cart-item .row.g-0 { flex-direction: column; align-items: stretch; }
+  .cart-item img { max-height: 260px; width: 100%; margin-bottom: 8px; }
+
+  /* Increase tap target sizes */
+  .btn, .form-control, .dropdown-item { min-height: 40px; }
+}
+
+/* Medium screens (tablet) tweaks */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .col-6.col-md-4.col-lg-3 { flex: 0 0 33.3333%; max-width: 33.3333%; }
+  .navbar form.d-flex { max-width: 420px; }
+}
+
+/* Large screens */
+@media (min-width: 992px) {
+  .col-6.col-md-4.col-lg-3 { flex: 0 0 25%; max-width: 25%; }
+  .navbar form.d-flex { max-width: 520px; }
+}
+
+/* Always keep lists scrollable in suggestions on small screens */
+.list-group.position-absolute {
+  max-height: 55vh; /* not to exceed viewport */
+  overflow-y: auto;
+}
+
+/* Product details: make image center and scale nicely */
+.product-details img {
+  width: 100%;
+  height: auto;
+  max-height: 520px;
+  object-fit: contain;
+}
+
+/* Checkout and Order summary: keep stacked on mobile */
+@media (max-width: 991.98px) {
+  .order-summary { margin-top: 20px; }
+}
+
+/* Minor accessibility: larger focus outlines for keyboard users */
+:focus { outline: 3px solid rgba(0,123,255,0.15); outline-offset: 2px; }
