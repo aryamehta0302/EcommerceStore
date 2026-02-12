@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 
 export default function Cart() {
@@ -28,112 +29,140 @@ export default function Cart() {
   };
 
   const total = cart.reduce((a, i) => a + i.price * i.qty, 0).toFixed(2);
+  const itemCount = cart.reduce((a, i) => a + i.qty, 0);
 
   return (
-    <div className="container my-5">
-      <h2 className="fw-bold text-center mb-4">🛒 Your Shopping Cart</h2>
+    <motion.div
+      className="container my-5"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+    >
+      <h2 className="text-center mb-4" style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}>
+        <span className="text-gradient">Shopping Cart</span>
+      </h2>
 
       {cart.length === 0 ? (
-        <div className="text-center">
-          <p>Your cart is empty.</p>
-          <button className="btn btn-primary" onClick={() => navigate("/")}>
-            Go Shopping
+        <motion.div
+          className="text-center py-5"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+        >
+          <div style={{ fontSize: "3.5rem", marginBottom: "16px" }}>🛒</div>
+          <h5 className="fw-bold" style={{ color: "var(--text-secondary)" }}>Your cart is empty</h5>
+          <p style={{ color: "var(--text-muted)", marginBottom: "20px" }}>Looks like you haven't added anything yet.</p>
+          <button className="btn-gradient" onClick={() => navigate("/")}>
+            <i className="bi bi-arrow-left me-2"></i>Continue Shopping
           </button>
-        </div>
+        </motion.div>
       ) : (
         <div className="row g-4">
+          {/* Cart Items */}
           <div className="col-12 col-lg-8">
-            {cart.map((item) => (
-              <div
-                key={item._id}
-                className="card mb-3 shadow-sm border-0"
-                style={{ borderRadius: "12px" }}
-              >
-                <div className="row g-0 align-items-center">
-                  <div className="col-3 col-md-2 text-center p-2">
-                    <img
-                      src={item.image || "https://via.placeholder.com/100"}
-                      alt={item.name}
-                      className="img-fluid rounded"
-                      style={{ height: "90px", objectFit: "cover" }}
-                    />
-                  </div>
-                  <div className="col-9 col-md-10">
-                    <div className="card-body d-flex flex-column flex-md-row justify-content-between align-items-center">
-                      <div className="text-start">
-                        <h6 className="card-title fw-semibold mb-1">
-                          {item.name}
-                        </h6>
-                        <p className="text-muted small mb-1">{item.brand}</p>
-                        <p className="fw-bold text-primary mb-0">
-                          ₹{item.price.toFixed(2)}
-                        </p>
-                      </div>
-
-                      <div className="d-flex align-items-center mt-2 mt-md-0">
-                        <div className="input-group input-group-sm me-3" style={{ width: "90px" }}>
-                          <button
-                            className="btn btn-outline-secondary"
-                            onClick={() => updateQty(item._id, item.qty - 1)}
-                          >
-                            −
-                          </button>
-                          <input
-                            type="number"
-                            className="form-control text-center"
-                            value={item.qty}
-                            onChange={(e) =>
-                              updateQty(item._id, Number(e.target.value))
-                            }
-                          />
-                          <button
-                            className="btn btn-outline-secondary"
-                            onClick={() => updateQty(item._id, item.qty + 1)}
-                          >
-                            +
-                          </button>
+            <AnimatePresence>
+              {cart.map((item) => (
+                <motion.div
+                  key={item._id}
+                  className="cart-item mb-3"
+                  layout
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20, height: 0, marginBottom: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="row g-0 align-items-center">
+                    <div className="col-3 col-md-2 text-center">
+                      <img
+                        src={item.image || "https://via.placeholder.com/100"}
+                        alt={item.name}
+                        className="rounded"
+                        style={{ height: "80px", width: "80px", objectFit: "cover", borderRadius: "var(--radius-sm)" }}
+                      />
+                    </div>
+                    <div className="col-9 col-md-10">
+                      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center ps-2">
+                        <div>
+                          <h6 className="fw-semibold mb-1" style={{ fontSize: "0.95rem" }}>{item.name}</h6>
+                          <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginBottom: "4px" }}>{item.brand}</p>
+                          <span className="text-gradient" style={{ fontWeight: 700 }}>₹{item.price.toFixed(2)}</span>
                         </div>
-                        <button
-                          className="btn btn-outline-danger btn-sm"
-                          onClick={() => removeItem(item._id)}
-                        >
-                          <i className="bi bi-trash"></i>
-                        </button>
+
+                        <div className="d-flex align-items-center gap-3 mt-2 mt-md-0">
+                          <div className="d-flex align-items-center" style={{ border: "1px solid var(--border)", borderRadius: "50px", overflow: "hidden" }}>
+                            <button
+                              className="btn btn-sm px-3"
+                              style={{ border: "none", background: "transparent", fontWeight: 700, fontSize: "1rem" }}
+                              onClick={() => updateQty(item._id, item.qty - 1)}
+                            >
+                              −
+                            </button>
+                            <span style={{ padding: "0 12px", fontWeight: 600, fontSize: "0.9rem", minWidth: "30px", textAlign: "center" }}>
+                              {item.qty}
+                            </span>
+                            <button
+                              className="btn btn-sm px-3"
+                              style={{ border: "none", background: "transparent", fontWeight: 700, fontSize: "1rem" }}
+                              onClick={() => updateQty(item._id, item.qty + 1)}
+                            >
+                              +
+                            </button>
+                          </div>
+                          <motion.button
+                            className="btn-danger-soft btn-sm px-3 py-1"
+                            onClick={() => removeItem(item._id)}
+                            whileTap={{ scale: 0.9 }}
+                            style={{ borderRadius: "8px" }}
+                          >
+                            <i className="bi bi-trash"></i>
+                          </motion.button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
 
-          {/* Summary Section */}
+          {/* Order Summary */}
           <div className="col-12 col-lg-4">
-            <div className="card shadow-sm border-0 p-3" style={{ borderRadius: "12px" }}>
-              <h5 className="fw-bold mb-3 text-center">🧾 Order Summary</h5>
-              <div className="d-flex justify-content-between mb-2">
-                <span>Items:</span>
-                <span>{cart.length}</span>
-              </div>
-              <div className="d-flex justify-content-between mb-2">
-                <span>Subtotal:</span>
+            <motion.div
+              className="order-summary"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+            >
+              <h5 className="fw-bold mb-3" style={{ fontFamily: "'Outfit', sans-serif" }}>Order Summary</h5>
+
+              <div className="d-flex justify-content-between mb-2" style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                <span>Items ({itemCount})</span>
                 <span>₹{total}</span>
               </div>
-              <hr />
-              <h5 className="fw-bold text-success d-flex justify-content-between">
-                <span>Total:</span>
-                <span>₹{total}</span>
-              </h5>
-              <button
-                className="btn btn-primary w-100 mt-3"
+              <div className="d-flex justify-content-between mb-2" style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                <span>Shipping</span>
+                <span style={{ color: "var(--success)", fontWeight: 600 }}>Free</span>
+              </div>
+
+              <hr style={{ borderColor: "var(--border)" }} />
+
+              <div className="d-flex justify-content-between mb-3">
+                <strong>Total</strong>
+                <strong className="text-gradient" style={{ fontSize: "1.2rem" }}>₹{total}</strong>
+              </div>
+
+              <motion.button
+                className="btn-gradient w-100"
                 onClick={() => navigate("/checkout")}
+                whileTap={{ scale: 0.96 }}
+                style={{ padding: "12px" }}
               >
                 Proceed to Checkout
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

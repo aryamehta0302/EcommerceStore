@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Payment() {
   const [method, setMethod] = useState("upi");
@@ -16,72 +17,128 @@ export default function Payment() {
     }
   };
 
+  const methods = [
+    { id: "upi", icon: "📱", label: "UPI / GPay", desc: "Scan & Pay" },
+    { id: "card", icon: "💳", label: "Card", desc: "Visa / Mastercard" },
+    { id: "cod", icon: "💵", label: "Cash on Delivery", desc: "Pay at doorstep" },
+  ];
+
   return (
-    <div className="container text-center mt-5">
-      <div className="card shadow p-4 mx-auto" style={{ maxWidth: "600px" }}>
-        <h3 className="fw-bold text-primary mb-3">Payment Options</h3>
-        <h5 className="mb-3">Total Amount: ₹{total.toFixed(2)}</h5>
-
-        <div className="my-3">
-          <label className="me-3">
-            <input
-              type="radio"
-              value="upi"
-              checked={method === "upi"}
-              onChange={(e) => setMethod(e.target.value)}
-            />{" "}
-            UPI / GPay
-          </label>
-          <label className="me-3">
-            <input
-              type="radio"
-              value="card"
-              checked={method === "card"}
-              onChange={(e) => setMethod(e.target.value)}
-            />{" "}
-            Visa / Card
-          </label>
-          <label>
-            <input
-              type="radio"
-              value="cod"
-              checked={method === "cod"}
-              onChange={(e) => setMethod(e.target.value)}
-            />{" "}
-            Cash on Delivery
-          </label>
+    <motion.div
+      className="container my-5"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+    >
+      {/* Steps */}
+      <div className="tm-steps">
+        <div className="tm-step done">
+          <div className="tm-step-number"><i className="bi bi-check"></i></div>
+          <span className="d-none d-sm-inline">Shipping</span>
         </div>
-
-        {method === "upi" && (
-          <>
-            <p>Scan this QR to pay via GPay / BHIM:</p>
-            <img
-              src={`${backendUrl}/uploads/gpay-qr.jpg`}
-              alt="GPay QR Code"
-              width="200"
-              className="rounded shadow-sm border"
-              onError={(e) => {
-                e.target.src = "https://via.placeholder.com/200?text=QR+Not+Found";
-              }}
-            />
-          </>
-        )}
-
-        <button className="btn btn-success mt-4" onClick={handlePayment}>
-          Confirm Payment
-        </button>
-
-        {confirmed && (
-          <div className="alert alert-success mt-3">
-            ✅ Order placed successfully!<br />
-            Expected delivery:{" "}
-            <strong>
-              {new Date(Date.now() + 5 * 86400000).toDateString()}
-            </strong>{" "}
-            (from Navsari, Gujarat)
-          </div>
-        )}
+        <div className="tm-step-line done"></div>
+        <div className="tm-step active">
+          <div className="tm-step-number">2</div>
+          <span className="d-none d-sm-inline">Payment</span>
+        </div>
+        <div className="tm-step-line"></div>
+        <div className={`tm-step ${confirmed ? "done" : ""}`}>
+          <div className="tm-step-number">{confirmed ? <i className="bi bi-check"></i> : "3"}</div>
+          <span className="d-none d-sm-inline">Complete</span>
+        </div>
       </div>
-    </div>
+
+      <div className="d-flex justify-content-center">
+        <motion.div
+          className="glass-card p-4 w-100"
+          style={{ maxWidth: "600px" }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <h4 className="mb-1" style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}>
+            Choose Payment Method
+          </h4>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "20px" }}>
+            Total: <strong className="text-gradient">₹{total.toFixed(2)}</strong>
+          </p>
+
+          {/* Payment method cards */}
+          <div className="row g-3 mb-4">
+            {methods.map((m) => (
+              <div className="col-4" key={m.id}>
+                <motion.div
+                  className={`payment-method-card ${method === m.id ? "selected" : ""}`}
+                  onClick={() => setMethod(m.id)}
+                  whileTap={{ scale: 0.96 }}
+                >
+                  <div className="pm-icon">{m.icon}</div>
+                  <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>{m.label}</div>
+                  <div style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>{m.desc}</div>
+                </motion.div>
+              </div>
+            ))}
+          </div>
+
+          {/* UPI QR */}
+          <AnimatePresence>
+            {method === "upi" && (
+              <motion.div
+                className="text-center mb-3"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>Scan this QR to pay via GPay / BHIM:</p>
+                <img
+                  src={`${backendUrl}/uploads/gpay-qr.jpg`}
+                  alt="GPay QR Code"
+                  width="180"
+                  className="rounded"
+                  style={{ border: "2px solid var(--border)" }}
+                  onError={(e) => {
+                    e.target.src = "https://via.placeholder.com/180?text=QR+Not+Found";
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <motion.button
+            className="btn-gradient-success w-100"
+            onClick={handlePayment}
+            whileTap={{ scale: 0.96 }}
+            style={{ padding: "12px" }}
+          >
+            <i className="bi bi-shield-check me-2"></i>Confirm Payment
+          </motion.button>
+
+          <AnimatePresence>
+            {confirmed && (
+              <motion.div
+                className="mt-4 p-4 text-center"
+                style={{
+                  background: "rgba(16, 185, 129, 0.08)",
+                  borderRadius: "var(--radius)",
+                  border: "1px solid rgba(16, 185, 129, 0.2)",
+                }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>🎉</div>
+                <h5 className="fw-bold" style={{ color: "var(--success)" }}>Order Placed Successfully!</h5>
+                <p style={{ color: "var(--text-secondary)", marginBottom: "4px" }}>
+                  Expected delivery:{" "}
+                  <strong>{new Date(Date.now() + 5 * 86400000).toDateString()}</strong>
+                </p>
+                <small style={{ color: "var(--text-muted)" }}>Shipping from Navsari, Gujarat</small>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
+    </motion.div>
   );
 }

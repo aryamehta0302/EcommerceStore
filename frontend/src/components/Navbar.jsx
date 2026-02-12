@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import api from "../api";
 import DarkToggle from "./DarkToggle";
 
@@ -9,6 +10,7 @@ export default function Navbar() {
   const [suggestions, setSuggestions] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [navExpanded, setNavExpanded] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
   const navigate = useNavigate();
 
   // Load user
@@ -17,19 +19,26 @@ export default function Navbar() {
     setUser(stored);
   }, []);
 
-  // 🔍 Live Search Suggestions
+  // Cart count
+  useEffect(() => {
+    const updateCount = () => {
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      setCartCount(cart.reduce((a, i) => a + (i.qty || 1), 0));
+    };
+    updateCount();
+    window.addEventListener("storage", updateCount);
+    const interval = setInterval(updateCount, 1000);
+    return () => { window.removeEventListener("storage", updateCount); clearInterval(interval); };
+  }, []);
+
+  // Live search
   useEffect(() => {
     const fetchSuggestions = async () => {
-      if (search.trim().length < 2) {
-        setSuggestions([]);
-        return;
-      }
+      if (search.trim().length < 2) { setSuggestions([]); return; }
       try {
         const { data } = await api.get(`/api/products?keyword=${search}`);
         setSuggestions(data.products.slice(0, 5));
-      } catch (err) {
-        console.error("Search error:", err);
-      }
+      } catch (err) { console.error("Search error:", err); }
     };
     const timeout = setTimeout(fetchSuggestions, 300);
     return () => clearTimeout(timeout);
@@ -52,191 +61,219 @@ export default function Navbar() {
   };
 
   return (
-    <>
-      <nav className="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm py-2">
-        <div className="container-fluid px-3">
-          {/* BRAND */}
-          <Link
-            to="/"
-            className="navbar-brand fw-bold fs-5 d-flex align-items-center"
-            onClick={() => setNavExpanded(false)}
-          >
-            🛍️ TrendMart
-          </Link>
+    <nav className="tm-navbar d-flex align-items-center">
+      <div className="container-fluid px-3 d-flex align-items-center justify-content-between">
+        {/* BRAND */}
+        <Link to="/" className="navbar-brand text-decoration-none" onClick={() => setNavExpanded(false)}>
+          🛍️ TrendMart
+        </Link>
 
-          {/* TOGGLER */}
-          <button
-            className="navbar-toggler"
-            type="button"
-            onClick={() => setNavExpanded(!navExpanded)}
-            aria-expanded={navExpanded}
-          >
-            <span className="navbar-toggler-icon"></span>
-          </button>
+        {/* TOGGLER */}
+        <button
+          className="d-lg-none btn btn-link text-light p-0"
+          onClick={() => setNavExpanded(!navExpanded)}
+          aria-label="Toggle navigation"
+          style={{ fontSize: "1.4rem" }}
+        >
+          <i className={`bi ${navExpanded ? "bi-x-lg" : "bi-list"}`}></i>
+        </button>
 
-          {/* COLLAPSE AREA */}
-          <div
-            className={`collapse navbar-collapse ${navExpanded ? "show" : ""}`}
-            id="mainNav"
-          >
-            {/* SEARCH BAR */}
-            <form
-              className="d-flex mx-lg-auto mt-3 mt-lg-0 position-relative"
-              style={{ width: "100%", maxWidth: "500px" }}
-              onSubmit={handleSearchSubmit}
-            >
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Search for products..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  borderRadius: "6px",
-                  fontSize: "0.95rem",
-                  paddingRight: "40px",
-                }}
-              />
-              <button className="btn btn-primary ms-2" type="submit">
-                <i className="bi bi-search"></i>
-              </button>
+        {/* DESKTOP NAV */}
+        <div className="d-none d-lg-flex align-items-center flex-grow-1 ms-4">
+          {/* SEARCH */}
+          <form className="position-relative flex-grow-1" style={{ maxWidth: "480px" }} onSubmit={handleSearchSubmit}>
+            <input
+              type="text"
+              className="tm-search"
+              placeholder="Search products..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ paddingRight: "90px" }}
+            />
+            <button className="tm-search-btn" type="submit">
+              <i className="bi bi-search me-1"></i> Search
+            </button>
 
-              {/* Live Search Suggestion Box */}
+            <AnimatePresence>
               {suggestions.length > 0 && (
-                <ul
-                  className="list-group position-absolute w-100 shadow"
-                  style={{
-                    top: "105%",
-                    zIndex: 1050,
-                    borderRadius: "8px",
-                    overflow: "hidden",
-                  }}
+                <motion.div
+                  className="tm-suggestions"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
                 >
                   {suggestions.map((s) => (
-                    <li
+                    <div
                       key={s._id}
-                      className="list-group-item d-flex align-items-center justify-content-between"
-                      style={{ cursor: "pointer" }}
+                      className="tm-suggestion-item"
                       onClick={() => {
                         navigate(`/product/${s._id}`);
                         setSuggestions([]);
                         setSearch("");
-                        setNavExpanded(false);
                       }}
                     >
                       <div className="d-flex align-items-center gap-2">
                         <img
                           src={s.image || "https://via.placeholder.com/40"}
                           alt={s.name}
-                          width="40"
-                          height="40"
-                          style={{
-                            borderRadius: "5px",
-                            objectFit: "cover",
-                          }}
+                          width="36" height="36"
+                          style={{ borderRadius: "8px", objectFit: "cover" }}
                         />
-                        <span className="small fw-semibold text-truncate" style={{ maxWidth: "180px" }}>
+                        <span style={{ fontSize: "0.88rem", fontWeight: 500, maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {s.name}
                         </span>
                       </div>
-                      <span className="text-primary small fw-semibold">
-                        ₹{s.price}
-                      </span>
-                    </li>
+                      <span className="text-gradient" style={{ fontWeight: 700, fontSize: "0.9rem" }}>₹{s.price}</span>
+                    </div>
                   ))}
-                </ul>
+                </motion.div>
               )}
-            </form>
+            </AnimatePresence>
+          </form>
 
-            {/* RIGHT SIDE LINKS */}
-            <ul className="navbar-nav ms-auto mt-3 mt-lg-0 align-items-lg-center">
-              {user && (
-                <li className="nav-item me-lg-3">
-                  <Link
-                    className="nav-link"
-                    to="/cart"
-                    onClick={() => setNavExpanded(false)}
-                  >
-                    <i className="bi bi-cart"></i> Cart
-                  </Link>
-                </li>
-              )}
+          {/* RIGHT LINKS */}
+          <div className="d-flex align-items-center gap-2 ms-auto">
+            {user && (
+              <Link
+                className="nav-link position-relative"
+                to="/cart"
+                style={{ color: "#d1d5db", fontSize: "1.2rem" }}
+              >
+                <i className="bi bi-bag"></i>
+                {cartCount > 0 && <span className="tm-cart-badge">{cartCount}</span>}
+              </Link>
+            )}
 
-              {/* USER / ADMIN DROPDOWN */}
-              {user ? (
-                <li className="nav-item dropdown">
-                  <button
-                    className="btn btn-link nav-link text-light dropdown-toggle"
-                    type="button"
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
-                  >
-                    <i className="bi bi-person-circle"></i>{" "}
-                    {user.name || "User"}
-                  </button>
+            {user ? (
+              <div className="position-relative">
+                <button
+                  className="btn btn-link text-light text-decoration-none d-flex align-items-center gap-1"
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  style={{ fontSize: "0.9rem", fontWeight: 500 }}
+                >
+                  <i className="bi bi-person-circle" style={{ fontSize: "1.1rem" }}></i>
+                  {user.name || "User"}
+                  <i className="bi bi-chevron-down" style={{ fontSize: "0.7rem" }}></i>
+                </button>
+
+                <AnimatePresence>
                   {dropdownOpen && (
-                    <ul className="dropdown-menu dropdown-menu-end show mt-2">
-                      <li>
-                        <Link
-                          className="dropdown-item"
-                          to="/profile"
-                          onClick={() => {
-                            setDropdownOpen(false);
-                            setNavExpanded(false);
-                          }}
-                        >
-                          Profile
-                        </Link>
-                      </li>
+                    <motion.div
+                      className="tm-dropdown position-absolute end-0 mt-2"
+                      initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Link
+                        className="tm-dropdown-item"
+                        to="/profile"
+                        onClick={() => { setDropdownOpen(false); setNavExpanded(false); }}
+                      >
+                        <i className="bi bi-person me-2"></i>Profile
+                      </Link>
                       {user.isAdmin && (
-                        <li>
-                          <Link
-                            className="dropdown-item"
-                            to="/admin"
-                            onClick={() => {
-                              setDropdownOpen(false);
-                              setNavExpanded(false);
-                            }}
-                          >
-                            Admin Dashboard
-                          </Link>
-                        </li>
-                      )}
-                      <li>
-                        <hr className="dropdown-divider" />
-                      </li>
-                      <li>
-                        <button
-                          className="dropdown-item text-danger"
-                          onClick={handleLogout}
+                        <Link
+                          className="tm-dropdown-item"
+                          to="/admin"
+                          onClick={() => { setDropdownOpen(false); setNavExpanded(false); }}
                         >
-                          Logout
-                        </button>
-                      </li>
-                    </ul>
+                          <i className="bi bi-speedometer2 me-2"></i>Admin Dashboard
+                        </Link>
+                      )}
+                      <div className="tm-dropdown-divider"></div>
+                      <button
+                        className="tm-dropdown-item"
+                        onClick={handleLogout}
+                        style={{ color: "var(--danger)" }}
+                      >
+                        <i className="bi bi-box-arrow-right me-2"></i>Logout
+                      </button>
+                    </motion.div>
                   )}
-                </li>
-              ) : (
-                <li className="nav-item mt-2 mt-lg-0">
-                  <Link
-                    to="/login"
-                    className="btn btn-outline-light ms-lg-2 fw-semibold w-100"
-                    onClick={() => setNavExpanded(false)}
-                  >
-                    Sign In
-                  </Link>
-                </li>
-              )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="btn-gradient"
+                onClick={() => setNavExpanded(false)}
+                style={{ fontSize: "0.85rem", padding: "8px 20px" }}
+              >
+                Sign In
+              </Link>
+            )}
 
-              <li className="nav-item ms-lg-3 mt-2 mt-lg-0">
-                <DarkToggle />
-              </li>
-            </ul>
+            <DarkToggle />
           </div>
         </div>
-      </nav>
+      </div>
 
-      {/* SPACER BELOW NAVBAR */}
-      <div style={{ height: "80px" }}></div>
-    </>
+      {/* MOBILE DRAWER */}
+      <AnimatePresence>
+        {navExpanded && (
+          <motion.div
+            className="d-lg-none position-fixed"
+            style={{ top: "var(--navbar-h)", left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 1090 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setNavExpanded(false)}
+          >
+            <motion.div
+              className="p-4"
+              style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)" }}
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -20, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Mobile search */}
+              <form className="position-relative mb-3" onSubmit={handleSearchSubmit}>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Search products..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{ borderRadius: "50px", padding: "10px 18px" }}
+                />
+              </form>
+
+              <div className="d-flex flex-column gap-2">
+                {user && (
+                  <Link className="btn btn-ghost w-100" to="/cart" onClick={() => setNavExpanded(false)}>
+                    <i className="bi bi-bag me-2"></i>Cart {cartCount > 0 && `(${cartCount})`}
+                  </Link>
+                )}
+                {user ? (
+                  <>
+                    <Link className="btn btn-ghost w-100" to="/profile" onClick={() => setNavExpanded(false)}>
+                      <i className="bi bi-person me-2"></i>Profile
+                    </Link>
+                    {user.isAdmin && (
+                      <Link className="btn btn-ghost w-100" to="/admin" onClick={() => setNavExpanded(false)}>
+                        <i className="bi bi-speedometer2 me-2"></i>Admin
+                      </Link>
+                    )}
+                    <button className="btn btn-danger-soft w-100" onClick={handleLogout}>
+                      <i className="bi bi-box-arrow-right me-2"></i>Logout
+                    </button>
+                  </>
+                ) : (
+                  <Link className="btn-gradient w-100 text-center d-block" to="/login" onClick={() => setNavExpanded(false)}>
+                    Sign In
+                  </Link>
+                )}
+                <div className="mt-2 d-flex justify-content-center">
+                  <DarkToggle />
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </nav>
   );
 }

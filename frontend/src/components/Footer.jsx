@@ -1,32 +1,73 @@
+import { motion } from "framer-motion";
+
 export default function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="bg-dark text-light pt-4 pb-2 mt-auto border-top border-secondary">
-      <div className="container text-center">
-        <div className="row gy-3">
-          <div className="col-12 col-md-4">
-            <h6 className="fw-bold text-uppercase mb-2">TrendMart</h6>
-            <small className="text-muted">
-              Made with Love ❤️ by Arya Mehta
+    <footer className="tm-footer mt-auto">
+      <div className="container">
+        <div className="row gy-4">
+          {/* Brand */}
+          <div className="col-12 col-md-4 text-center text-md-start">
+            <motion.h5
+              className="fw-bold mb-2"
+              style={{
+                fontFamily: "'Outfit', sans-serif",
+                background: "linear-gradient(135deg, var(--primary-light), var(--accent))",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                fontSize: "1.2rem",
+              }}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+            >
+              🛍️ TrendMart
+            </motion.h5>
+            <small style={{ color: "#6b7280" }}>
+              Made with ❤️ by Arya Mehta
             </small>
           </div>
-          <div className="col-12 col-md-4">
-            <h6 className="fw-bold text-uppercase mb-2">Contact</h6>
-            <small>
-              📞 +91 63533 62927 <br />
+
+          {/* Contact */}
+          <div className="col-12 col-md-4 text-center">
+            <h6>Contact</h6>
+            <small style={{ lineHeight: 1.8 }}>
+              📞 +91 63533 62927<br />
               ✉️ support@trendmart.in
             </small>
           </div>
-          <div className="col-12 col-md-4">
-            <h6 className="fw-bold text-uppercase mb-2">Follow Us</h6>
-            <div className="d-flex justify-content-center gap-3 fs-5">
-              <a href="#" className="text-light"><i className="bi bi-facebook"></i></a>
-              <a href="#" className="text-light"><i className="bi bi-instagram"></i></a>
-              <a href="#" className="text-light"><i className="bi bi-twitter"></i></a>
+
+          {/* Socials */}
+          <div className="col-12 col-md-4 text-center text-md-end">
+            <h6>Follow Us</h6>
+            <div className="tm-footer-social d-flex justify-content-center justify-content-md-end gap-3">
+              {[
+                { icon: "bi-facebook", href: "#" },
+                { icon: "bi-instagram", href: "#" },
+                { icon: "bi-twitter-x", href: "#" },
+              ].map((s, i) => (
+                <motion.a
+                  key={i}
+                  href={s.href}
+                  whileHover={{ y: -3, scale: 1.1 }}
+                  transition={{ type: "spring", stiffness: 400 }}
+                >
+                  <i className={`bi ${s.icon}`}></i>
+                </motion.a>
+              ))}
             </div>
           </div>
         </div>
-        <hr className="border-secondary mt-3 mb-2" />
-        <small className="text-muted">&copy; {new Date().getFullYear()} TrendMart</small>
+
+        <hr style={{ borderColor: "rgba(255,255,255,0.06)", margin: "30px 0 15px" }} />
+
+        <div className="text-center">
+          <small style={{ color: "#4b5563", fontSize: "0.8rem" }}>
+            © {currentYear} TrendMart. All rights reserved.
+          </small>
+        </div>
       </div>
     </footer>
   );

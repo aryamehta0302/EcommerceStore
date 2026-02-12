@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
 export default function DarkToggle() {
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
@@ -12,18 +13,21 @@ export default function DarkToggle() {
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
+  const isDark = theme === "dark";
+
   return (
     <button
-      className="btn btn-outline-light btn-sm fw-semibold"
+      className={`tm-dark-toggle ${isDark ? "dark" : ""}`}
       onClick={toggleTheme}
-      style={{
-        fontSize: "0.9rem",
-        borderRadius: "8px",
-        padding: "6px 12px",
-        minWidth: "120px",
-      }}
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
     >
-      {theme === "dark" ? "Dark Mode: ON" : "Dark Mode: OFF"}
+      <motion.div
+        className="toggle-knob"
+        layout
+        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      >
+        {isDark ? "🌙" : "☀️"}
+      </motion.div>
     </button>
   );
 }
