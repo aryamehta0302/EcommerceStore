@@ -14,11 +14,12 @@ const addressSchema = new mongoose.Schema({
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true },
   isAdmin: { type: Boolean, default: false },
   phone: String,
-  addresses: { type: [addressSchema], default: [] }
+  addresses: { type: [addressSchema], default: [] },
+  wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }]
 }, { timestamps: true });
 
 userSchema.pre("save", async function(next) {

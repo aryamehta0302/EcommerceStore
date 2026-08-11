@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import api, { setAuthToken } from "../api";
 import { toast } from "react-toastify";
+import { mergeGuestDataIntoUser } from "../utils/userStorage";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -16,7 +17,6 @@ export default function Register() {
   const location = useLocation();
   const redirect = new URLSearchParams(location.search).get("redirect") || "/";
 
-  // Password strength
   const strength = useMemo(() => {
     if (!password) return { level: 0, label: "", color: "" };
     let score = 0;
@@ -26,9 +26,9 @@ export default function Register() {
     if (/[0-9]/.test(password)) score++;
     if (/[^A-Za-z0-9]/.test(password)) score++;
 
-    if (score <= 2) return { level: score, label: "Weak", color: "var(--danger)" };
-    if (score <= 3) return { level: score, label: "Medium", color: "var(--warning)" };
-    return { level: score, label: "Strong", color: "var(--success)" };
+    if (score <= 2) return { level: score, label: "Weak", color: "#b3261e" };
+    if (score <= 3) return { level: score, label: "Medium", color: "#b8860b" };
+    return { level: score, label: "Strong", color: "var(--tm-gold)" };
   }, [password]);
 
   const submit = async (e) => {
@@ -42,6 +42,7 @@ export default function Register() {
       const { data } = await api.post("/api/users/register", { name, email, phone, password });
       localStorage.setItem("userInfo", JSON.stringify(data));
       setAuthToken(data.token);
+      mergeGuestDataIntoUser(data._id);
       toast.success("Registration successful!");
       navigate(redirect);
     } catch (err) {
@@ -51,127 +52,133 @@ export default function Register() {
     }
   };
 
+  const fieldVariants = {
+    hidden: { opacity: 0, y: 14 },
+    visible: (i) => ({
+      opacity: 1,
+      y: 0,
+      transition: { delay: 0.12 + i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+    }),
+  };
+
   return (
-    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "80vh" }}>
+    <div className="auth-page">
       <motion.div
         className="auth-card"
-        style={{ maxWidth: "460px" }}
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="text-center mb-4">
-          <div style={{ fontSize: "2.5rem", marginBottom: "8px" }}>🚀</div>
-          <h3 className="text-gradient mb-1">Create Account</h3>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>Join TrendMart today</p>
-        </div>
+        <motion.div
+          className="auth-glow"
+          animate={{ opacity: [0.35, 0.6, 0.35] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        />
 
-        <form onSubmit={submit}>
-          <div className="mb-3">
-            <label className="tm-label">Full Name</label>
-            <div className="position-relative">
-              <input
-                className="form-control"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="John Doe"
-                style={{ borderRadius: "var(--radius-sm)", paddingLeft: "40px" }}
-              />
-              <i className="bi bi-person" style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}></i>
-            </div>
-          </div>
+        <motion.div
+          className="auth-head"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05, duration: 0.5 }}
+        >
+          <span className="auth-eyebrow">The Maison</span>
+          <h1 className="auth-title">Create Account</h1>
+          <p className="auth-sub">Join TrendMart and begin curating</p>
+        </motion.div>
 
-          <div className="mb-3">
-            <label className="tm-label">Email address</label>
-            <div className="position-relative">
-              <input
-                type="email"
-                className="form-control"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                style={{ borderRadius: "var(--radius-sm)", paddingLeft: "40px" }}
-              />
-              <i className="bi bi-envelope" style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}></i>
-            </div>
-          </div>
+        <form onSubmit={submit} className="auth-form">
+          <motion.div className="auth-field" custom={0} variants={fieldVariants} initial="hidden" animate="visible">
+            <label className="auth-label">Full Name</label>
+            <input
+              className="auth-input"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="John Doe"
+            />
+          </motion.div>
 
-          <div className="mb-3">
-            <label className="tm-label">Phone number</label>
-            <div className="position-relative">
-              <input
-                type="text"
-                className="form-control"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+91 XXXXX XXXXX"
-                style={{ borderRadius: "var(--radius-sm)", paddingLeft: "40px" }}
-              />
-              <i className="bi bi-telephone" style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}></i>
-            </div>
-          </div>
+          <motion.div className="auth-field" custom={1} variants={fieldVariants} initial="hidden" animate="visible">
+            <label className="auth-label">Email address</label>
+            <input
+              type="email"
+              className="auth-input"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
+          </motion.div>
 
-          <div className="mb-3">
-            <label className="tm-label">Password</label>
-            <div className="position-relative">
-              <input
-                type="password"
-                className="form-control"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                style={{ borderRadius: "var(--radius-sm)", paddingLeft: "40px" }}
-              />
-              <i className="bi bi-lock" style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}></i>
-            </div>
+          <motion.div className="auth-field" custom={2} variants={fieldVariants} initial="hidden" animate="visible">
+            <label className="auth-label">Phone number</label>
+            <input
+              type="text"
+              className="auth-input"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+91 XXXXX XXXXX"
+            />
+          </motion.div>
+
+          <motion.div className="auth-field" custom={3} variants={fieldVariants} initial="hidden" animate="visible">
+            <label className="auth-label">Password</label>
+            <input
+              type="password"
+              className="auth-input"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+            />
             {password && (
-              <div className="mt-2">
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                transition={{ duration: 0.25 }}
+                className="strength-wrap"
+              >
                 <div className="strength-bar">
-                  <div
+                  <motion.div
                     className="strength-bar-fill"
-                    style={{
-                      width: `${(strength.level / 5) * 100}%`,
-                      background: strength.color,
-                    }}
-                  ></div>
+                    animate={{ width: `${(strength.level / 5) * 100}%`, background: strength.color }}
+                    transition={{ duration: 0.3 }}
+                  />
                 </div>
-                <small style={{ color: strength.color, fontWeight: 600, fontSize: "0.75rem" }}>
+                <span className="strength-label" style={{ color: strength.color }}>
                   {strength.label}
-                </small>
-              </div>
+                </span>
+              </motion.div>
             )}
-          </div>
+          </motion.div>
 
-          <div className="mb-4">
-            <label className="tm-label">Confirm password</label>
-            <div className="position-relative">
-              <input
-                type="password"
-                className="form-control"
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                style={{ borderRadius: "var(--radius-sm)", paddingLeft: "40px" }}
-              />
-              <i className="bi bi-shield-lock" style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}></i>
-            </div>
-          </div>
+          <motion.div className="auth-field" custom={4} variants={fieldVariants} initial="hidden" animate="visible">
+            <label className="auth-label">Confirm Password</label>
+            <input
+              type="password"
+              className="auth-input"
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="••••••••"
+            />
+          </motion.div>
 
           <motion.button
             type="submit"
-            className="btn-gradient w-100"
+            className="auth-btn"
             disabled={loading}
-            whileTap={{ scale: 0.96 }}
-            style={{ padding: "12px" }}
+            whileTap={{ scale: 0.97 }}
+            whileHover={{ y: -1 }}
+            custom={5}
+            variants={fieldVariants}
+            initial="hidden"
+            animate="visible"
           >
             {loading ? (
-              <span className="d-flex align-items-center justify-content-center gap-2">
-                <span className="spinner-border spinner-border-sm"></span>
-                Creating account...
+              <span className="auth-btn-loading">
+                <span className="auth-spinner" />
+                Creating account…
               </span>
             ) : (
               "Create Account"
@@ -179,13 +186,161 @@ export default function Register() {
           </motion.button>
         </form>
 
-        <div className="text-center mt-4">
-          <span style={{ color: "var(--text-muted)", fontSize: "0.88rem" }}>
-            Already have an account?{" "}
-            <Link to={`/login?redirect=${redirect}`} style={{ fontWeight: 600 }}>Sign in</Link>
-          </span>
-        </div>
+        <motion.div
+          className="auth-footer"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.55, duration: 0.5 }}
+        >
+          Already have an account?{" "}
+          <Link to={`/login?redirect=${redirect}`} className="auth-link">Sign in</Link>
+        </motion.div>
       </motion.div>
+
+      <style>{`
+        .auth-page {
+          min-height: 82vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 40px 20px;
+        }
+
+        .auth-card {
+          position: relative;
+          width: 100%;
+          max-width: 460px;
+          border: 1px solid var(--tm-line);
+          background: var(--tm-card, transparent);
+          padding: 44px 38px 36px;
+          overflow: hidden;
+        }
+        .auth-glow {
+          position: absolute;
+          top: -60px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 280px;
+          height: 160px;
+          background: radial-gradient(closest-side, var(--tm-gold), transparent 70%);
+          filter: blur(40px);
+          opacity: 0.4;
+          pointer-events: none;
+        }
+
+        .auth-head {
+          text-align: center;
+          margin-bottom: 28px;
+          position: relative;
+        }
+        .auth-eyebrow {
+          font-size: 10px;
+          letter-spacing: 0.4em;
+          text-transform: uppercase;
+          color: var(--tm-gold);
+        }
+        .auth-title {
+          font-family: "Playfair Display", serif;
+          font-size: 30px;
+          margin: 12px 0 6px;
+          letter-spacing: -0.01em;
+          font-weight: 500;
+        }
+        .auth-sub {
+          font-size: 13px;
+          color: var(--tm-muted);
+        }
+
+        .auth-form { position: relative; display: flex; flex-direction: column; gap: 18px; }
+
+        .auth-field { display: flex; flex-direction: column; gap: 8px; }
+        .auth-label {
+          font-size: 10px;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: var(--tm-muted);
+        }
+        .auth-input {
+          background: transparent;
+          border: none;
+          border-bottom: 1px solid var(--tm-line);
+          color: var(--tm-fg, inherit);
+          font-size: 15px;
+          padding: 8px 2px;
+          outline: none;
+          transition: border-color .3s ease;
+        }
+        .auth-input::placeholder { color: var(--tm-muted); opacity: 0.6; }
+        .auth-input:focus { border-color: var(--tm-gold); }
+
+        .strength-wrap { margin-top: 8px; overflow: hidden; }
+        .strength-bar {
+          height: 2px;
+          background: var(--tm-line);
+          overflow: hidden;
+          margin-bottom: 6px;
+        }
+        .strength-bar-fill { height: 100%; }
+        .strength-label {
+          font-size: 10.5px;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          font-weight: 600;
+        }
+
+        .auth-btn {
+          margin-top: 6px;
+          background: var(--tm-gold);
+          border: 1px solid var(--tm-gold);
+          color: #0b0b0c;
+          padding: 13px;
+          font-size: 11px;
+          letter-spacing: 0.24em;
+          text-transform: uppercase;
+          font-weight: 600;
+          cursor: pointer;
+          transition: opacity .2s ease, transform .2s ease;
+        }
+        .auth-btn:hover:not(:disabled) { opacity: 0.88; }
+        .auth-btn:disabled { opacity: 0.6; cursor: default; }
+
+        .auth-btn-loading {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+        }
+        .auth-spinner {
+          width: 13px;
+          height: 13px;
+          border: 2px solid rgba(11,11,12,0.3);
+          border-top-color: #0b0b0c;
+          border-radius: 50%;
+          animation: auth-spin 0.7s linear infinite;
+        }
+        @keyframes auth-spin { to { transform: rotate(360deg); } }
+
+        .auth-footer {
+          text-align: center;
+          margin-top: 28px;
+          font-size: 13px;
+          color: var(--tm-muted);
+          position: relative;
+        }
+        .auth-link {
+          color: var(--tm-gold);
+          text-decoration: none;
+          font-weight: 600;
+          border-bottom: 1px solid transparent;
+          transition: border-color .2s ease;
+        }
+        .auth-link:hover { border-color: var(--tm-gold); }
+
+        @media (max-width: 480px) {
+          .auth-card { padding: 34px 24px 28px; }
+          .auth-title { font-size: 24px; }
+        }
+      `}</style>
     </div>
   );
 }

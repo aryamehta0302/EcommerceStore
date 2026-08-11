@@ -6,7 +6,8 @@ const orderItemSchema = new mongoose.Schema({
   name: String,
   qty: Number,
   price: Number,
-  image: String
+  image: String,
+  size: String   // ← added: persists the selected size/shoe size/"One Size" on each order line
 }, { _id: false });
 
 const orderSchema = new mongoose.Schema({
@@ -27,6 +28,11 @@ const orderSchema = new mongoose.Schema({
   shippingPrice: Number,
   taxPrice: Number,
   totalPrice: Number,
+  status: {
+    type: String,
+    enum: ["pending", "processing", "shipped", "out_for_delivery", "delivered"],
+    default: "pending"
+  },
   isPaid: { type: Boolean, default: false },
   paidAt: Date,
   isDelivered: { type: Boolean, default: false },

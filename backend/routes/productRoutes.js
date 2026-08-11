@@ -1,6 +1,9 @@
+// backend/routes/productRoutes.js
 import express from "express";
 import asyncHandler from "express-async-handler";
 import Product from "../models/productModel.js";
+import { protect } from "../middleware/authMiddleware.js";
+import { createProductReview } from "../controllers/productController.js";
 
 const router = express.Router();
 
@@ -43,35 +46,7 @@ router.get(
 
 // @desc Create a new review
 // @route POST /api/products/:id/reviews
-// @access Public (can be protected later)
-router.post(
-  "/:id/reviews",
-  asyncHandler(async (req, res) => {
-    const { rating, comment } = req.body;
-    const product = await Product.findById(req.params.id);
-
-    if (product) {
-      const review = {
-        name: "Anonymous User",
-        rating: Number(rating),
-        comment,
-        createdAt: new Date(),
-      };
-
-      product.reviews.push(review);
-      product.numReviews = product.reviews.length;
-      product.rating =
-        product.reviews.reduce((acc, item) => item.rating + acc, 0) /
-        product.reviews.length;
-
-      await product.save();
-      res.status(201).json({ message: "Review added" });
-    } else {
-      res.status(404);
-      throw new Error("Product not found");
-    }
-  })
-);
-
+// @access Private (must be logged in — uses req.user for name)
+router.post("/:id/reviews", protect, createProductReview);
 
 export default router;

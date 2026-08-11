@@ -1,134 +1,137 @@
-# 🛍️ TrendMart — Full MERN Stack E-Commerce Platform
+# TrendMart — Premium Fashion E-Commerce Platform
 
-![Node](https://img.shields.io/badge/Node.js-18+-green?logo=node.js)
-![React](https://img.shields.io/badge/React-Vite-blue?logo=react)
-![Express](https://img.shields.io/badge/Express.js-black?logo=express)
-![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-success?logo=mongodb)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+TrendMart is a full-stack e-commerce web application built with the MERN stack (MongoDB, Express, React, Node.js). It features a complete shopping experience — from browsing and wishlisting products to secure checkout and order tracking — wrapped in a custom "Or Noir" luxury boutique theme.
 
-A full-featured e-commerce store built using the **MERN Stack** (MongoDB, Express, React, Node.js) with modern responsive UI, admin dashboard, dark mode, live search, and more.
+> Built as part of the **Dezai Learners Internship Program**.
 
 ---
 
-## 🚀 Features
+## ✨ Features
 
-### 🧾 General
-- Responsive design (mobile + tablet + desktop)
-- Light/Dark mode toggle with persistent preference
-- Product catalog with search, pagination & filters
-- User authentication & JWT-based sessions
-- Add to cart, checkout, and order summary system
-- Review & rating system per product
-- Payment options: **UPI / Card / Cash on Delivery**
-- Admin Dashboard: manage users, products, orders
+### Customer Experience
+- **Product Browsing** — Category-based navigation (New In, Women, Men, Sale, etc.) with keyword search
+- **Product Details** — Image display, size selection (clothing sizes, footwear sizes, or "One Size" for accessories), customer reviews & ratings
+- **Wishlist** — Save products for later, persisted per logged-in user
+- **Shopping Cart** — Add/update/remove items with size and quantity tracking, persisted per logged-in user
+- **Guest Cart Merge** — Items added while browsing as a guest automatically merge into the user's account on login/signup
+- **Checkout Flow** — Shipping address (auto-filled from profile), order summary, and payment
+- **Razorpay Integration** — Secure payment gateway with signature verification, plus Cash on Delivery option
+- **Order Tracking** — Order history and detailed order status tracker (Pending → Processing → Shipped → Out for Delivery → Delivered)
+- **Product Reviews** — Authenticated users can rate and review products (persisted to the database)
+- **Authentication** — JWT-based login/register with per-user session handling
 
-### 🧠 Tech Stack
-**Frontend:** React (Vite), Bootstrap 5, Axios, Toastify  
-**Backend:** Node.js, Express.js, Mongoose, JWT, bcrypt  
-**Database:** MongoDB Atlas  
-**Deployment:** Render (backend), Vercel (frontend)
+### Admin Experience
+- Simplified navbar (no storefront distractions) for admin accounts
+- Dashboard access for managing products and orders
+
+### Design
+- Custom **dark/light theme toggle** with a cohesive gold-accented "Or Noir" visual identity
+- Fully responsive layouts across cart, wishlist, checkout, and product pages
+- Smooth animations via Framer Motion (page transitions, cart updates, review submissions)
 
 ---
 
-## 🧩 Folder Structure
+## 🛠️ Tech Stack
 
+**Frontend**
+- React (Vite)
+- React Router
+- Framer Motion (animations)
+- Axios
+- React Toastify (notifications)
+
+**Backend**
+- Node.js + Express
+- MongoDB + Mongoose
+- JWT authentication (jsonwebtoken)
+- bcryptjs (password hashing)
+- Razorpay (payment gateway)
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (v18+)
+- MongoDB (local or Atlas)
+- Razorpay account (test keys for payment integration)
+
+### Installation
+
+1. **Clone the repository**
+```bash
+   git clone https://github.com/<your-username>/trendmart.git
+   cd trendmart
 ```
-EcommerceStore/
+
+2. **Backend setup**
+```bash
+   cd backend
+   npm install
+```
+
+   Create a `.env` file in `backend/`:
+```
+   MONGO_URI=your_mongodb_connection_string
+   JWT_SECRET=your_jwt_secret
+   ADMIN_EMAIL=admin@example.com
+   RAZORPAY_KEY_ID=your_razorpay_key_id
+   RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+```
+
+```bash
+   npm run dev
+```
+
+3. **Frontend setup**
+```bash
+   cd frontend
+   npm install
+   npm run dev
+```
+
+4. Open `http://localhost:5173` in your browser.
+
+---
+
+## 📂 Project Structure
+trendmart/
 ├── backend/
-│   ├── server.js
-│   ├── routes/
-│   ├── models/
-│   ├── controllers/
-│   ├── uploads/
-│   ├── package.json
-│   └── .env (not committed)
-│
+│ ├── controllers/
+│ ├── middleware/
+│ ├── models/
+│ ├── routes/
+│ └── server.js
 ├── frontend/
-│   ├── src/
-│   ├── public/
-│   ├── vite.config.js
-│   ├── package.json
-│   └── .env (not committed)
-│
+│ ├── src/
+│ │ ├── components/
+│ │ ├── pages/
+│ │ ├── utils/
+│ │ └── api.js
+│ └── index.html
 └── README.md
-```
+
 
 ---
 
-## ⚙️ Environment Variables
+## 🔐 Environment Variables
 
-### Backend `.env`
-```
-MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/ecommerce
-JWT_SECRET=<your_secret>
-NODE_ENV=production
-PORT=5000
-```
+| Variable | Description |
+|---|---|
+| `MONGO_URI` | MongoDB connection string |
+| `JWT_SECRET` | Secret key for signing JWTs |
+| `ADMIN_EMAIL` | Email used to auto-assign admin role on registration |
+| `RAZORPAY_KEY_ID` | Razorpay public key |
+| `RAZORPAY_KEY_SECRET` | Razorpay secret key (backend only) |
 
-### Frontend `.env`
-```
-VITE_API_BASE_URL=https://ecommerce-backend.onrender.com
-```
 
----
+## 🎓 Acknowledgment
 
-## 🧱 Installation (Local Setup)
-
-### 1️⃣ Clone the Repository
-```bash
-git clone https://github.com/aryamehta0302/EcommerceStore.git
-cd EcommerceStore
-```
-
-### 2️⃣ Install Dependencies
-```bash
-# Backend
-cd backend
-npm install
-
-# Frontend
-cd ../frontend
-npm install
-```
-
-### 3️⃣ Run Development Servers
-```bash
-# Backend
-npm run dev
-
-# Frontend
-npm run dev
-```
-
-### 4️⃣ Build Frontend (Production)
-```bash
-cd frontend
-npm run build
-```
+This project was developed as part of the **Dezai Learners Internship Program**, focused on building practical, production-style full-stack applications using the MERN stack.
 
 ---
 
-## ☁️ Deployment
+## 📄 License
 
-### 🔹 Backend (Render)
-- Root Directory → `backend`
-- Start Command → `npm start`
-- Environment Variables → `MONGO_URI`, `JWT_SECRET`, `NODE_ENV`
-
-### 🔹 Frontend (Vercel)
-- Root Directory → `frontend`
-- Build Command → `npm run build`
-- Output Directory → `dist`
-- Environment Variable → `VITE_API_BASE_URL`
-
----
-
-## 👨‍💻 Author
-
-**Arya Mehta**  
-[GitHub](https://github.com/aryamehta0302)
-
----
-
-## 📜 License
-This project is licensed under the MIT License.
+This project is for educational purposes as part of an internship assignment.
+git add .

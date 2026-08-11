@@ -1,279 +1,379 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { FaHeart, FaRegUser, FaSearch, FaShoppingBag, FaBars, FaTimes, FaMoon, FaSun } from "react-icons/fa";
 import api from "../api";
-import DarkToggle from "./DarkToggle";
+import AccountMenu from "./AccountMenu";
+import { readWishlistIds, readCart } from "../utils/userStorage";
+
+const THEME_KEY = "tm_theme";
+
+const CATEGORIES = [
+  { label: "New In", slug: "new-in" },
+  { label: "Women", slug: "women" },
+  { label: "Men", slug: "men" },
+  { label: "Sale", slug: "sale" },
+];
 
 export default function Navbar() {
-  const [user, setUser] = useState(null);
-  const [search, setSearch] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [navExpanded, setNavExpanded] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
   const navigate = useNavigate();
+  const [scrolled, setScrolled] = useState(false);
+  const [drawer, setDrawer] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [wishCount, setWishCount] = useState(0);
+  const [cartCount, setCartCount] = useState(0);
+  const [user, setUser] = useState(null);
+  const [dark, setDark] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return (localStorage.getItem(THEME_KEY) || "dark") === "dark";
+  });
 
-  // Load user
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("userInfo"));
-    setUser(stored);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    try { localStorage.setItem(THEME_KEY, dark ? "dark" : "light"); } catch { }
+  }, [dark]);
+
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > 12);
+    on();
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
   }, []);
 
-  // Cart count
   useEffect(() => {
-    const updateCount = () => {
-      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-      setCartCount(cart.reduce((a, i) => a + (i.qty || 1), 0));
+    const sync = () => setWishCount(readWishlistIds().length);
+    sync();
+    window.addEventListener("storage", sync);
+    window.addEventListener("wishlist:change", sync);
+    window.addEventListener("auth:change", sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("wishlist:change", sync);
+      window.removeEventListener("auth:change", sync);
     };
-    updateCount();
-    window.addEventListener("storage", updateCount);
-    const interval = setInterval(updateCount, 1000);
-    return () => { window.removeEventListener("storage", updateCount); clearInterval(interval); };
   }, []);
 
-  // Live search
   useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (search.trim().length < 2) { setSuggestions([]); return; }
+    const sync = () => setCartCount(readCart().reduce((sum, item) => sum + (item.qty || 1), 0));
+    sync();
+    window.addEventListener("storage", sync);
+    window.addEventListener("cart:change", sync);
+    window.addEventListener("auth:change", sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("cart:change", sync);
+      window.removeEventListener("auth:change", sync);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchUser = async () => {
+      const stored = localStorage.getItem("userInfo");
+      if (!stored) { setUser(null); return; }
       try {
-        const { data } = await api.get(`/api/products?keyword=${search}`);
-        setSuggestions(data.products.slice(0, 5));
-      } catch (err) { console.error("Search error:", err); }
+        const { data } = await api.get("/api/users/profile");
+        if (!cancelled) setUser(data);
+      } catch {
+        if (!cancelled) setUser(null);
+      }
     };
-    const timeout = setTimeout(fetchSuggestions, 300);
-    return () => clearTimeout(timeout);
-  }, [search]);
+    fetchUser();
+    window.addEventListener("auth:change", fetchUser);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("auth:change", fetchUser);
+    };
+  }, []);
 
-  const handleSearchSubmit = (e) => {
+  const initials = useMemo(() => {
+    if (!user?.name) return null;
+    return user.name.trim().split(/\s+/).slice(0, 2).map(s => s[0]?.toUpperCase()).join("");
+  }, [user]);
+
+  const submitSearch = (e) => {
     e.preventDefault();
-    if (search.trim()) {
-      navigate(`/?keyword=${encodeURIComponent(search)}`);
-      setSuggestions([]);
-      setNavExpanded(false);
-    }
+    const q = query.trim();
+    if (!q) return;
+    setSearchOpen(false);
+    setDrawer(false);
+    navigate(`/?keyword=${encodeURIComponent(q)}`);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("userInfo");
-    setUser(null);
-    setNavExpanded(false);
-    navigate("/");
-  };
+  const isAdmin = !!user?.isAdmin;
+  const brandHref = isAdmin ? "/admin" : "/";
 
   return (
-    <nav className="tm-navbar d-flex align-items-center">
-      <div className="container-fluid px-3 d-flex align-items-center justify-content-between">
-        {/* BRAND */}
-        <Link to="/" className="navbar-brand text-decoration-none" onClick={() => setNavExpanded(false)}>
-          🛍️ TrendMart
-        </Link>
+    <>
+      <div className="tm-announce">
+        Complimentary shipping worldwide · Private atelier appointments
+      </div>
 
-        {/* TOGGLER */}
-        <button
-          className="d-lg-none btn btn-link text-light p-0"
-          onClick={() => setNavExpanded(!navExpanded)}
-          aria-label="Toggle navigation"
-          style={{ fontSize: "1.4rem" }}
-        >
-          <i className={`bi ${navExpanded ? "bi-x-lg" : "bi-list"}`}></i>
-        </button>
+      <header className={`tm-nav ${scrolled ? "is-scrolled" : ""}`}>
+        <div className="tm-nav-inner">
+          <div className="tm-nav-left">
+            <button
+              className="tm-icon-btn d-lg-none"
+              aria-label="Menu"
+              onClick={() => setDrawer(true)}
+            >
+              <FaBars />
+            </button>
+            {!isAdmin && (
+              <button
+                className="tm-icon-btn d-none d-lg-inline-flex"
+                aria-label="Search"
+                onClick={() => setSearchOpen(v => !v)}
+              >
+                <FaSearch />
+              </button>
+            )}
+          </div>
 
-        {/* DESKTOP NAV */}
-        <div className="d-none d-lg-flex align-items-center flex-grow-1 ms-4">
-          {/* SEARCH */}
-          <form className="position-relative flex-grow-1" style={{ maxWidth: "480px" }} onSubmit={handleSearchSubmit}>
-            <input
-              type="text"
-              className="tm-search"
-              placeholder="Search products..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ paddingRight: "90px" }}
-            />
-            <button className="tm-search-btn" type="submit">
-              <i className="bi bi-search me-1"></i> Search
+          <Link to={brandHref} className="tm-brand" onClick={() => setDrawer(false)}>
+            <span className="tm-brand-name">TREND MART</span>
+            <span className="tm-brand-sub">Or Noir · Est. 1897</span>
+          </Link>
+
+          <div className="tm-nav-right">
+            <button
+              className="tm-icon-btn"
+              aria-label="Toggle theme"
+              onClick={() => setDark(v => !v)}
+              title={dark ? "Switch to light" : "Switch to dark"}
+            >
+              {dark ? <FaSun /> : <FaMoon />}
             </button>
 
-            <AnimatePresence>
-              {suggestions.length > 0 && (
-                <motion.div
-                  className="tm-suggestions"
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {suggestions.map((s) => (
-                    <div
-                      key={s._id}
-                      className="tm-suggestion-item"
-                      onClick={() => {
-                        navigate(`/product/${s._id}`);
-                        setSuggestions([]);
-                        setSearch("");
-                      }}
-                    >
-                      <div className="d-flex align-items-center gap-2">
-                        <img
-                          src={s.image || "https://via.placeholder.com/40"}
-                          alt={s.name}
-                          width="36" height="36"
-                          style={{ borderRadius: "8px", objectFit: "cover" }}
-                        />
-                        <span style={{ fontSize: "0.88rem", fontWeight: 500, maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {s.name}
-                        </span>
-                      </div>
-                      <span className="text-gradient" style={{ fontWeight: 700, fontSize: "0.9rem" }}>₹{s.price}</span>
-                    </div>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </form>
+            {!isAdmin && (
+              <>
+                <NavLink to="/wishlist" className="tm-icon-btn tm-wish" aria-label="Wishlist">
+                  <FaHeart />
+                  {wishCount > 0 && <span className="tm-badge">{wishCount}</span>}
+                </NavLink>
 
-          {/* RIGHT LINKS */}
-          <div className="d-flex align-items-center gap-2 ms-auto">
-            {user && (
-              <Link
-                className="nav-link position-relative"
-                to="/cart"
-                style={{ color: "#d1d5db", fontSize: "1.2rem" }}
-              >
-                <i className="bi bi-bag"></i>
-                {cartCount > 0 && <span className="tm-cart-badge">{cartCount}</span>}
-              </Link>
+                <NavLink to="/cart" className="tm-icon-btn tm-wish" aria-label="Bag">
+                  <FaShoppingBag />
+                  {cartCount > 0 && <span className="tm-badge">{cartCount}</span>}
+                </NavLink>
+              </>
             )}
 
             {user ? (
-              <div className="position-relative">
-                <button
-                  className="btn btn-link text-light text-decoration-none d-flex align-items-center gap-1"
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  style={{ fontSize: "0.9rem", fontWeight: 500 }}
-                >
-                  <i className="bi bi-person-circle" style={{ fontSize: "1.1rem" }}></i>
-                  {user.name || "User"}
-                  <i className="bi bi-chevron-down" style={{ fontSize: "0.7rem" }}></i>
-                </button>
-
-                <AnimatePresence>
-                  {dropdownOpen && (
-                    <motion.div
-                      className="tm-dropdown position-absolute end-0 mt-2"
-                      initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Link
-                        className="tm-dropdown-item"
-                        to="/profile"
-                        onClick={() => { setDropdownOpen(false); setNavExpanded(false); }}
-                      >
-                        <i className="bi bi-person me-2"></i>Profile
-                      </Link>
-                      {user.isAdmin && (
-                        <Link
-                          className="tm-dropdown-item"
-                          to="/admin"
-                          onClick={() => { setDropdownOpen(false); setNavExpanded(false); }}
-                        >
-                          <i className="bi bi-speedometer2 me-2"></i>Admin Dashboard
-                        </Link>
-                      )}
-                      <div className="tm-dropdown-divider"></div>
-                      <button
-                        className="tm-dropdown-item"
-                        onClick={handleLogout}
-                        style={{ color: "var(--danger)" }}
-                      >
-                        <i className="bi bi-box-arrow-right me-2"></i>Logout
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+              <AccountMenu user={user} />
             ) : (
-              <Link
-                to="/login"
-                className="btn-gradient"
-                onClick={() => setNavExpanded(false)}
-                style={{ fontSize: "0.85rem", padding: "8px 20px" }}
-              >
-                Sign In
-              </Link>
+              <NavLink to="/login" className="tm-icon-btn" aria-label="Account">
+                <FaRegUser />
+              </NavLink>
             )}
-
-            <DarkToggle />
           </div>
         </div>
-      </div>
 
-      {/* MOBILE DRAWER */}
+        {!isAdmin && (
+          <nav className="tm-nav-cats d-none d-lg-flex">
+            {CATEGORIES.map((c) => (
+              <NavLink
+                key={c.slug}
+                to={`/category/${c.slug}`}
+                className={({ isActive }) => `tm-cat ${isActive ? "is-active" : ""}`}
+              >
+                {c.label}
+              </NavLink>
+            ))}
+          </nav>
+        )}
+
+        {!isAdmin && (
+          <AnimatePresence>
+            {searchOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                className="tm-search-wrap"
+              >
+                <form className="tm-search-form" onSubmit={submitSearch}>
+                  <FaSearch className="tm-search-icon" />
+                  <input
+                    autoFocus
+                    className="tm-search-input"
+                    placeholder="Search timepieces, jewelry, leather…"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                  />
+                  <button type="button" className="tm-search-close" onClick={() => setSearchOpen(false)}>
+                    <FaTimes />
+                  </button>
+                </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
+      </header>
+
       <AnimatePresence>
-        {navExpanded && (
-          <motion.div
-            className="d-lg-none position-fixed"
-            style={{ top: "var(--navbar-h)", left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 1090 }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setNavExpanded(false)}
+        {drawer && (
+          <motion.aside
+            className="tm-drawer"
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
-            <motion.div
-              className="p-4"
-              style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)" }}
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Mobile search */}
-              <form className="position-relative mb-3" onSubmit={handleSearchSubmit}>
+            <div className="tm-drawer-top">
+              <span className="tm-brand-name">TREND MART</span>
+              <button className="tm-icon-btn" onClick={() => setDrawer(false)} aria-label="Close">
+                <FaTimes />
+              </button>
+            </div>
+
+            {!isAdmin && (
+              <form className="tm-search-form tm-search-form--drawer" onSubmit={submitSearch}>
+                <FaSearch className="tm-search-icon" />
                 <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Search products..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  style={{ borderRadius: "50px", padding: "10px 18px" }}
+                  className="tm-search-input"
+                  placeholder="Search…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
                 />
               </form>
+            )}
 
-              <div className="d-flex flex-column gap-2">
-                {user && (
-                  <Link className="btn btn-ghost w-100" to="/cart" onClick={() => setNavExpanded(false)}>
-                    <i className="bi bi-bag me-2"></i>Cart {cartCount > 0 && `(${cartCount})`}
-                  </Link>
-                )}
-                {user ? (
-                  <>
-                    <Link className="btn btn-ghost w-100" to="/profile" onClick={() => setNavExpanded(false)}>
-                      <i className="bi bi-person me-2"></i>Profile
-                    </Link>
-                    {user.isAdmin && (
-                      <Link className="btn btn-ghost w-100" to="/admin" onClick={() => setNavExpanded(false)}>
-                        <i className="bi bi-speedometer2 me-2"></i>Admin
-                      </Link>
-                    )}
-                    <button className="btn btn-danger-soft w-100" onClick={handleLogout}>
-                      <i className="bi bi-box-arrow-right me-2"></i>Logout
-                    </button>
-                  </>
-                ) : (
-                  <Link className="btn-gradient w-100 text-center d-block" to="/login" onClick={() => setNavExpanded(false)}>
-                    Sign In
-                  </Link>
-                )}
-                <div className="mt-2 d-flex justify-content-center">
-                  <DarkToggle />
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
+            <nav className="tm-drawer-nav">
+              {!isAdmin && CATEGORIES.map((c) => (
+                <NavLink
+                  key={c.slug}
+                  to={`/category/${c.slug}`}
+                  className="tm-drawer-link"
+                  onClick={() => setDrawer(false)}
+                >
+                  {c.label}
+                </NavLink>
+              ))}
+              {!isAdmin && (
+                <>
+                  <NavLink to="/wishlist" className="tm-drawer-link" onClick={() => setDrawer(false)}>
+                    Wishlist ({wishCount})
+                  </NavLink>
+                  <NavLink to="/cart" className="tm-drawer-link" onClick={() => setDrawer(false)}>
+                    Bag ({cartCount})
+                  </NavLink>
+                </>
+              )}
+              <NavLink to={user ? (isAdmin ? "/admin" : "/account") : "/login"} className="tm-drawer-link" onClick={() => setDrawer(false)}>
+                {user ? (isAdmin ? "Dashboard" : "Account") : "Sign In"}
+              </NavLink>
+            </nav>
+          </motion.aside>
         )}
       </AnimatePresence>
-    </nav>
+
+      <style>{`
+        :root[data-theme="dark"] {
+          --tm-bg: #0b0b0c; --tm-fg: #f5efe3; --tm-muted: #9a9187;
+          --tm-line: rgba(212,175,55,0.18); --tm-gold: #d4af37; --tm-card: #141315;
+        }
+        :root[data-theme="light"] {
+          --tm-bg: #faf7f2; --tm-fg: #141210; --tm-muted: #6b6259;
+          --tm-line: rgba(20,18,16,0.12); --tm-gold: #b8892b; --tm-card: #ffffff;
+        }
+        body { background: var(--tm-bg); color: var(--tm-fg); }
+
+        .tm-announce {
+          background: #000; color: var(--tm-gold);
+          font-size: 10px; letter-spacing: 0.35em; text-transform: uppercase;
+          text-align: center; padding: 8px 12px; border-bottom: 1px solid var(--tm-line);
+        }
+        .tm-nav {
+          position: sticky; top: 0; z-index: 60;
+          background: color-mix(in oklab, var(--tm-bg) 82%, transparent);
+          backdrop-filter: blur(16px) saturate(160%);
+          -webkit-backdrop-filter: blur(16px) saturate(160%);
+          transition: box-shadow .3s ease, background .3s ease;
+        }
+        .tm-nav.is-scrolled { box-shadow: 0 1px 0 var(--tm-line); }
+        .tm-nav-inner {
+          max-width: 1400px; margin: 0 auto; padding: 14px 24px;
+          display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px;
+        }
+        .tm-nav-left { display: flex; gap: 10px; }
+        .tm-nav-right { display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
+        .tm-icon-btn {
+          width: 40px; height: 40px; border-radius: 999px;
+          border: 1px solid transparent; background: transparent; color: var(--tm-fg);
+          display: inline-flex; align-items: center; justify-content: center;
+          position: relative; cursor: pointer; transition: color .25s, border-color .25s, background .25s;
+        }
+        .tm-icon-btn:hover { color: var(--tm-gold); border-color: var(--tm-line); }
+        .tm-initials { font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+        .tm-wish .tm-badge {
+          position: absolute; top: 4px; right: 4px; min-width: 18px; height: 18px;
+          padding: 0 5px; border-radius: 999px; background: var(--tm-gold); color: #0b0b0c;
+          font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;
+        }
+
+        .tm-brand { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit; }
+        .tm-brand-name {
+          font-family: "Playfair Display", "Cormorant Garamond", serif;
+          font-size: 26px; letter-spacing: 0.34em; font-weight: 500;
+        }
+        .tm-brand-sub {
+          margin-top: 4px; font-size: 9.5px; letter-spacing: 0.5em;
+          text-transform: uppercase; color: var(--tm-gold);
+        }
+
+        .tm-nav-cats {
+          max-width: 1400px; margin: 0 auto; padding: 6px 24px 14px;
+          display: flex; justify-content: center; gap: 44px;
+        }
+        .tm-cat {
+          font-size: 11px; letter-spacing: 0.32em; text-transform: uppercase;
+          color: var(--tm-muted); text-decoration: none; padding-bottom: 4px;
+          border-bottom: 1px solid transparent; transition: color .25s, border-color .25s;
+        }
+        .tm-cat:hover, .tm-cat.is-active { color: var(--tm-gold); border-color: var(--tm-gold); }
+
+        .tm-search-wrap { overflow: hidden; border-top: 1px solid var(--tm-line); }
+        .tm-search-form {
+          max-width: 1000px; margin: 0 auto; padding: 22px 24px;
+          display: flex; align-items: center; gap: 14px;
+        }
+        .tm-search-icon { color: var(--tm-gold); font-size: 18px; }
+        .tm-search-input {
+          flex: 1; background: transparent; border: 0; outline: 0;
+          color: var(--tm-fg); font-size: 22px; letter-spacing: 0.02em;
+          font-family: "Playfair Display", serif;
+          padding: 14px 6px; border-bottom: 1px solid var(--tm-line);
+        }
+        .tm-search-input::placeholder { color: var(--tm-muted); }
+        .tm-search-close {
+          background: transparent; border: 0; color: var(--tm-muted); cursor: pointer;
+        }
+        .tm-search-close:hover { color: var(--tm-gold); }
+
+        .tm-drawer {
+          position: fixed; inset: 0 30% 0 0; z-index: 80; background: var(--tm-bg);
+          border-right: 1px solid var(--tm-line); padding: 18px 20px;
+          display: flex; flex-direction: column; gap: 18px;
+        }
+        .tm-drawer-top { display: flex; justify-content: space-between; align-items: center; }
+        .tm-search-form--drawer { padding: 6px 0; }
+        .tm-search-form--drawer .tm-search-input { font-size: 18px; }
+        .tm-drawer-nav { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+        .tm-drawer-link {
+          font-family: "Playfair Display", serif; font-size: 24px;
+          color: var(--tm-fg); text-decoration: none;
+        }
+        .tm-drawer-link:hover { color: var(--tm-gold); }
+
+        @media (max-width: 640px) {
+          .tm-nav-inner { padding: 12px 16px; }
+          .tm-brand-name { font-size: 20px; letter-spacing: 0.3em; }
+          .tm-brand-sub { font-size: 8.5px; }
+        }
+      `}</style>
+    </>
   );
 }

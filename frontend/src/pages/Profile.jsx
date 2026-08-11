@@ -1,34 +1,15 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import api, { setAuthToken } from "../api";
 import { toast } from "react-toastify";
 
 export default function Profile() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("profile");
 
   const [form, setForm] = useState({
     name: "", phone: "", password: "", confirmPassword: "",
   });
-
-  const [addresses, setAddresses] = useState([
-    { fullName: "", phone: "", addressLine1: "", addressLine2: "", city: "", state: "", postalCode: "" },
-  ]);
-
-  const handleAddressChange = (index, field, value) => {
-    const updated = [...addresses];
-    updated[index][field] = value;
-    setAddresses(updated);
-  };
-
-  const addAddress = () => {
-    setAddresses([...addresses, { fullName: "", phone: "", addressLine1: "", addressLine2: "", city: "", state: "", postalCode: "" }]);
-  };
-
-  const removeAddress = (i) => {
-    setAddresses(addresses.filter((_, idx) => idx !== i));
-  };
 
   useEffect(() => {
     const userInfo = JSON.parse(localStorage.getItem("userInfo"));
@@ -39,7 +20,6 @@ export default function Profile() {
         const { data } = await api.get("/api/users/profile");
         setUser(data);
         setForm({ name: data.name, phone: data.phone || "", password: "", confirmPassword: "" });
-        setAddresses(data.addresses?.length ? data.addresses : addresses);
       } catch (err) {
         toast.error("Failed to load profile");
       } finally {
@@ -57,7 +37,7 @@ export default function Profile() {
     }
     try {
       const { data } = await api.put("/api/users/profile", {
-        name: form.name, phone: form.phone, password: form.password || undefined, addresses,
+        name: form.name, phone: form.phone, password: form.password || undefined,
       });
       localStorage.setItem("userInfo", JSON.stringify(data));
       setAuthToken(data.token);
@@ -69,7 +49,7 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "50vh" }}>
+      <div className="tm-profile-loading">
         <div className="tm-loader"></div>
       </div>
     );
@@ -77,173 +57,181 @@ export default function Profile() {
 
   return (
     <motion.div
-      className="container my-4"
+      className="tm-profile-page"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
     >
-      <div className="mx-auto" style={{ maxWidth: "720px" }}>
+      <div className="tm-profile-wrap">
         {/* Header */}
-        <div className="text-center mb-4">
-          <div style={{
-            width: "64px", height: "64px", borderRadius: "50%",
-            background: "linear-gradient(135deg, var(--primary), var(--accent))",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 12px", fontSize: "1.3rem", color: "#fff", fontWeight: 700
-          }}>
+        <div className="tm-profile-head">
+          <div className="tm-profile-avatar">
             {user?.name?.charAt(0)?.toUpperCase() || "U"}
           </div>
-          <h3 style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}>
-            {user?.name || "User"}
-          </h3>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>{user?.email}</p>
-        </div>
-
-        {/* Tabs */}
-        <div className="d-flex justify-content-center mb-4">
-          <div className="tm-tab-pills">
-            <button className={`tm-tab-pill ${activeTab === "profile" ? "active" : ""}`} onClick={() => setActiveTab("profile")}>
-              <i className="bi bi-person me-1"></i> Profile
-            </button>
-            <button className={`tm-tab-pill ${activeTab === "addresses" ? "active" : ""}`} onClick={() => setActiveTab("addresses")}>
-              <i className="bi bi-geo-alt me-1"></i> Addresses
-            </button>
-          </div>
+          <h1 className="tm-profile-name">{user?.name || "User"}</h1>
+          <p className="tm-profile-email">{user?.email}</p>
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* Profile Tab */}
-          {activeTab === "profile" && (
-            <motion.div
-              className="glass-card p-4"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="row g-3">
-                <div className="col-md-6">
-                  <label className="tm-label">Full Name</label>
-                  <input
-                    className="form-control"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    required
-                    style={{ borderRadius: "var(--radius-sm)" }}
-                  />
-                </div>
-                <div className="col-md-6">
-                  <label className="tm-label">Phone</label>
-                  <input
-                    className="form-control"
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    style={{ borderRadius: "var(--radius-sm)" }}
-                  />
-                </div>
-                <div className="col-md-6">
-                  <label className="tm-label">New Password</label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    placeholder="••••••••"
-                    style={{ borderRadius: "var(--radius-sm)" }}
-                  />
-                </div>
-                <div className="col-md-6">
-                  <label className="tm-label">Confirm Password</label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    value={form.confirmPassword}
-                    onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-                    placeholder="••••••••"
-                    style={{ borderRadius: "var(--radius-sm)" }}
-                  />
-                </div>
+          <motion.div
+            className="tm-profile-card"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="tm-profile-grid">
+              <div className="tm-field">
+                <label className="tm-label">Full Name</label>
+                <input
+                  className="tm-input"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                />
               </div>
-
-              <div className="text-center mt-4">
-                <motion.button type="submit" className="btn-gradient" whileTap={{ scale: 0.96 }}>
-                  Save Changes
-                </motion.button>
+              <div className="tm-field">
+                <label className="tm-label">Phone</label>
+                <input
+                  className="tm-input"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                />
               </div>
-            </motion.div>
-          )}
-
-          {/* Addresses Tab */}
-          {activeTab === "addresses" && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <AnimatePresence>
-                {addresses.map((addr, i) => (
-                  <motion.div
-                    key={i}
-                    className="glass-card p-4 mb-3"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                      <h6 className="mb-0 fw-bold" style={{ fontSize: "0.9rem" }}>
-                        <i className="bi bi-geo-alt me-1 text-gradient"></i>Address #{i + 1}
-                      </h6>
-                      {addresses.length > 1 && (
-                        <button
-                          type="button"
-                          className="btn-danger-soft btn-sm px-3 py-1"
-                          onClick={() => removeAddress(i)}
-                          style={{ borderRadius: "8px", fontSize: "0.8rem" }}
-                        >
-                          <i className="bi bi-trash me-1"></i>Remove
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="row g-2">
-                      <div className="col-md-6">
-                        <input className="form-control" placeholder="Full Name" value={addr.fullName} onChange={(e) => handleAddressChange(i, "fullName", e.target.value)} style={{ borderRadius: "var(--radius-sm)" }} />
-                      </div>
-                      <div className="col-md-6">
-                        <input className="form-control" placeholder="Phone" value={addr.phone} onChange={(e) => handleAddressChange(i, "phone", e.target.value)} style={{ borderRadius: "var(--radius-sm)" }} />
-                      </div>
-                      <div className="col-12">
-                        <input className="form-control" placeholder="Address Line 1" value={addr.addressLine1} onChange={(e) => handleAddressChange(i, "addressLine1", e.target.value)} style={{ borderRadius: "var(--radius-sm)" }} />
-                      </div>
-                      <div className="col-12">
-                        <input className="form-control" placeholder="Address Line 2" value={addr.addressLine2} onChange={(e) => handleAddressChange(i, "addressLine2", e.target.value)} style={{ borderRadius: "var(--radius-sm)" }} />
-                      </div>
-                      <div className="col-md-4">
-                        <input className="form-control" placeholder="City" value={addr.city} onChange={(e) => handleAddressChange(i, "city", e.target.value)} style={{ borderRadius: "var(--radius-sm)" }} />
-                      </div>
-                      <div className="col-md-4">
-                        <input className="form-control" placeholder="State" value={addr.state} onChange={(e) => handleAddressChange(i, "state", e.target.value)} style={{ borderRadius: "var(--radius-sm)" }} />
-                      </div>
-                      <div className="col-md-4">
-                        <input className="form-control" placeholder="Pincode" value={addr.postalCode} onChange={(e) => handleAddressChange(i, "postalCode", e.target.value)} style={{ borderRadius: "var(--radius-sm)" }} />
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-
-              <div className="d-flex gap-3 justify-content-center mt-3">
-                <button type="button" className="btn-ghost" onClick={addAddress}>
-                  <i className="bi bi-plus-lg me-1"></i>Add Address
-                </button>
-                <motion.button type="submit" className="btn-gradient" whileTap={{ scale: 0.96 }}>
-                  Save All Changes
-                </motion.button>
+              <div className="tm-field">
+                <label className="tm-label">New Password</label>
+                <input
+                  type="password"
+                  className="tm-input"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  placeholder="••••••••"
+                />
               </div>
-            </motion.div>
-          )}
+              <div className="tm-field">
+                <label className="tm-label">Confirm Password</label>
+                <input
+                  type="password"
+                  className="tm-input"
+                  value={form.confirmPassword}
+                  onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
+            <div className="tm-profile-actions">
+              <motion.button type="submit" className="tm-save-btn" whileTap={{ scale: 0.97 }}>
+                Save Changes
+              </motion.button>
+            </div>
+          </motion.div>
         </form>
       </div>
+
+      <style>{`
+        .tm-profile-loading {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 50vh;
+        }
+        .tm-loader {
+          width: 28px;
+          height: 28px;
+          border: 2px solid var(--tm-line);
+          border-top-color: var(--tm-gold);
+          border-radius: 50%;
+          animation: tm-spin 0.8s linear infinite;
+        }
+        @keyframes tm-spin { to { transform: rotate(360deg); } }
+
+        .tm-profile-page { max-width: 1400px; margin: 0 auto; padding: 56px 24px 96px; }
+        .tm-profile-wrap { max-width: 560px; margin: 0 auto; }
+
+        .tm-profile-head {
+          text-align: center;
+          margin-bottom: 36px;
+          padding-bottom: 28px;
+          border-bottom: 1px solid var(--tm-line);
+        }
+        .tm-profile-avatar {
+          width: 64px;
+          height: 64px;
+          margin: 0 auto 16px;
+          border-radius: 50%;
+          border: 1px solid var(--tm-gold);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: "Playfair Display", serif;
+          font-size: 22px;
+          color: var(--tm-gold);
+        }
+        .tm-profile-name {
+          font-family: "Playfair Display", serif;
+          font-size: clamp(24px, 3.5vw, 32px);
+          margin: 0 0 6px;
+        }
+        .tm-profile-email {
+          font-size: 12px;
+          letter-spacing: 0.08em;
+          color: var(--tm-muted);
+          margin: 0;
+        }
+
+        .tm-profile-card {
+          border: 1px solid var(--tm-line);
+          padding: 32px;
+        }
+
+        .tm-profile-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 22px;
+        }
+
+        .tm-field { display: flex; flex-direction: column; gap: 8px; }
+        .tm-label {
+          font-size: 10px;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: var(--tm-muted);
+        }
+        .tm-input {
+          background: transparent;
+          border: none;
+          border-bottom: 1px solid var(--tm-line);
+          padding: 8px 2px;
+          font-size: 14px;
+          color: inherit;
+          outline: none;
+          transition: border-color 0.2s ease;
+        }
+        .tm-input:focus { border-color: var(--tm-gold); }
+        .tm-input::placeholder { color: var(--tm-muted); }
+
+        .tm-profile-actions {
+          text-align: center;
+          margin-top: 32px;
+        }
+        .tm-save-btn {
+          background: var(--tm-gold);
+          border: 1px solid var(--tm-gold);
+          color: #0b0b0c;
+          padding: 13px 36px;
+          font-size: 11px;
+          letter-spacing: 0.24em;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: opacity 0.2s ease;
+        }
+        .tm-save-btn:hover { opacity: 0.85; }
+
+        @media (max-width: 560px) {
+          .tm-profile-grid { grid-template-columns: 1fr; }
+          .tm-profile-card { padding: 24px; }
+        }
+      `}</style>
     </motion.div>
   );
 }

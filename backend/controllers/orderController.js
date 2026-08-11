@@ -37,3 +37,26 @@ export const updateOrderToDelivered = asyncHandler(async (req, res) => {
   const updated = await order.save();
   res.json(updated);
 });
+
+const STATUS_FLOW = ["pending", "processing", "shipped", "out_for_delivery", "delivered"];
+
+export const updateOrderStatus = asyncHandler(async (req, res) => {
+  const { status } = req.body;
+  if (!STATUS_FLOW.includes(status)) {
+    res.status(400);
+    throw new Error("Invalid status");
+  }
+  const order = await Order.findById(req.params.id);
+  if (!order) { res.status(404); throw new Error("Order not found"); }
+
+  order.status = status;
+  if (status === "delivered") {
+    order.isDelivered = true;
+    order.deliveredAt = Date.now();
+  } else {
+    order.isDelivered = false;
+    order.deliveredAt = undefined;
+  }
+  const updated = await order.save();
+  res.json(updated);
+});
