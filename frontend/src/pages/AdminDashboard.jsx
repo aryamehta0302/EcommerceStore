@@ -18,12 +18,26 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const [products, setProducts] = useState([]);
+  const [totalProducts, setTotalProducts] = useState(0);
   const [users, setUsers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState("products");
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [productPage, setProductPage] = useState(1);
+  const PRODUCTS_PER_PAGE = 50;
+
+  // Debounce: wait 400ms after typing stops before hitting the backend,
+  // and reset to page 1 since a new search invalidates the old page.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setProductPage(1);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   // useCallback so we can safely call this from multiple triggers
   // (mount, focus, returning from edit page) without stale closures.
@@ -32,12 +46,18 @@ export default function AdminDashboard() {
       setLoading(true);
       // Cache-buster (`_t`) prevents any browser/proxy from serving a
       // stale cached response for the products GET request.
+      // `keyword` is sent to the backend so search covers the whole
+      // catalog (44k+ products), not just the currently loaded page.
+      const keywordParam = searchTerm ? `&keyword=${encodeURIComponent(searchTerm)}` : "";
       const [pRes, uRes, oRes] = await Promise.all([
-        api.get(`/api/products?limit=50&_t=${Date.now()}`),
+        api.get(`/api/products?limit=${PRODUCTS_PER_PAGE}&pageNumber=${productPage}${keywordParam}&_t=${Date.now()}`),
         api.get("/api/users"),
         api.get("/api/orders"),
       ]);
       setProducts(pRes.data.products || []);
+      // `total` is the real document count in the DB matching the query;
+      // pRes.data.products.length would just be the current page size (≤50).
+      setTotalProducts(pRes.data.total ?? pRes.data.products?.length ?? 0);
       setUsers(uRes.data || []);
       setOrders(oRes.data || []);
     } catch (err) {
@@ -46,12 +66,12 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [productPage, searchTerm]);
 
   // Refetch on mount AND every time we navigate back to this route
   // (e.g. from the edit page). location.key changes on every navigation,
   // even if the path is the same, so this is more reliable than an
-  // empty-dependency mount-only effect.
+  // empty-dependency mount-only effect. Also refetches when productPage changes.
   useEffect(() => {
     loadAll();
   }, [loadAll, location.key]);
@@ -104,14 +124,10 @@ export default function AdminDashboard() {
     }
   };
 
-  const filteredProducts = products.filter((p) => {
-    const term = searchTerm.toLowerCase();
-    return (
-      p.name?.toLowerCase().includes(term) ||
-      p.brand?.toLowerCase().includes(term) ||
-      p.category?.toLowerCase().includes(term)
-    );
-  });
+  // Note: `products` is already filtered server-side by `searchTerm`
+  // (sent as the `keyword` query param), so no client-side filtering
+  // is needed here — this covers the full 44k+ catalog, not just
+  // whatever page happens to be loaded.
 
   return (
     <motion.div
@@ -128,7 +144,7 @@ export default function AdminDashboard() {
       {/* Stat cards */}
       <div className="tm-stats">
         {[
-          { label: "Products", value: products.length },
+          { label: "Products", value: totalProducts },
           { label: "Users", value: users.length },
           { label: "Orders", value: orders.length },
         ].map((s, i) => (
@@ -170,8 +186,8 @@ export default function AdminDashboard() {
                   type="text"
                   className="tm-search-input"
                   placeholder="Search products by name, brand, category..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                 />
                 <div className="tm-admin-toolbar-actions">
                   <button
@@ -193,7 +209,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {filteredProducts.length === 0 ? (
+              {products.length === 0 ? (
                 <p className="tm-empty-msg">
                   {searchTerm
                     ? `No products match "${searchTerm}".`
@@ -206,7 +222,7 @@ export default function AdminDashboard() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
                 >
-                  {filteredProducts.map((p, i) => (
+                  {products.map((p, i) => (
                     <motion.div
                       className="tm-admin-card"
                       key={p._id}
@@ -235,6 +251,29 @@ export default function AdminDashboard() {
                     </motion.div>
                   ))}
                 </motion.div>
+              )}
+
+              {totalProducts > PRODUCTS_PER_PAGE && (
+                <div className="tm-pagination">
+                  <button
+                    className="tm-page-btn"
+                    disabled={productPage <= 1}
+                    onClick={() => setProductPage((p) => Math.max(1, p - 1))}
+                  >
+                    ← Prev
+                  </button>
+                  <span className="tm-page-info">
+                    Page {productPage} of {Math.ceil(totalProducts / PRODUCTS_PER_PAGE)}
+                    {" "}({totalProducts.toLocaleString()} total)
+                  </span>
+                  <button
+                    className="tm-page-btn"
+                    disabled={productPage >= Math.ceil(totalProducts / PRODUCTS_PER_PAGE)}
+                    onClick={() => setProductPage((p) => p + 1)}
+                  >
+                    Next →
+                  </button>
+                </div>
               )}
             </>
           )}
@@ -422,6 +461,33 @@ export default function AdminDashboard() {
           transition: border-color 0.2s ease;
         }
         .tm-search-input:focus { border-color: var(--tm-gold); }
+        .tm-pagination {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 20px;
+          margin-top: 32px;
+          padding-top: 24px;
+          border-top: 1px solid var(--tm-line);
+        }
+        .tm-page-btn {
+          background: transparent;
+          border: 1px solid var(--tm-line);
+          color: var(--tm-muted);
+          padding: 8px 16px;
+          font-size: 11px;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: border-color 0.2s ease, color 0.2s ease;
+        }
+        .tm-page-btn:hover:not(:disabled) { border-color: var(--tm-gold); color: var(--tm-gold); }
+        .tm-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .tm-page-info {
+          font-size: 12px;
+          color: var(--tm-muted);
+          letter-spacing: 0.05em;
+        }
         .tm-empty-msg {
           text-align: center;
           color: var(--tm-muted);
