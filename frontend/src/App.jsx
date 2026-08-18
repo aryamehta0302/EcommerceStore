@@ -16,6 +16,7 @@ import CategoryPage from "./pages/CategoryPage";
 import OrderHistory from "./pages/OrderHistory";
 import OrderDetails from "./pages/orderDetails";
 import AllProductsPage from "./pages/AllProductPages";
+import ProductEditScreen from "./pages/ProductEditScreen";
 
 // inside your <Routes>
 
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
           <Route path="/orders/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
           <Route path="/products" element={<AllProductsPage />} />
+          <Route path="/admin/product/:id/edit" element={<ProtectedRoute adminOnly><ProductEditScreen /></ProtectedRoute>} />
 
         </Routes>
       </main>

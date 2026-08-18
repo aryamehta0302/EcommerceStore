@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import api from "../api";
 import { toast } from "react-toastify";
@@ -14,17 +15,25 @@ const STATUS_OPTIONS = [
 const TABS = ["products", "users", "orders"];
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState("products");
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const loadAll = async () => {
+  // useCallback so we can safely call this from multiple triggers
+  // (mount, focus, returning from edit page) without stale closures.
+  const loadAll = useCallback(async () => {
     try {
       setLoading(true);
+      // Cache-buster (`_t`) prevents any browser/proxy from serving a
+      // stale cached response for the products GET request.
       const [pRes, uRes, oRes] = await Promise.all([
-        api.get("/api/products?limit=50"),
+        api.get(`/api/products?limit=50&_t=${Date.now()}`),
         api.get("/api/users"),
         api.get("/api/orders"),
       ]);
@@ -32,13 +41,28 @@ export default function AdminDashboard() {
       setUsers(uRes.data || []);
       setOrders(oRes.data || []);
     } catch (err) {
-      toast.error("Failed to load admin data");
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to load admin data");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { loadAll(); }, []);
+  // Refetch on mount AND every time we navigate back to this route
+  // (e.g. from the edit page). location.key changes on every navigation,
+  // even if the path is the same, so this is more reliable than an
+  // empty-dependency mount-only effect.
+  useEffect(() => {
+    loadAll();
+  }, [loadAll, location.key]);
+
+  // Also refetch when the browser tab regains focus, in case the data
+  // changed in another tab/window.
+  useEffect(() => {
+    const onFocus = () => loadAll();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [loadAll]);
 
   const deleteProduct = async (id) => {
     if (!confirm("Delete product?")) return;
@@ -46,7 +70,10 @@ export default function AdminDashboard() {
       await api.delete(`/api/products/${id}`);
       toast.success("Deleted");
       loadAll();
-    } catch { toast.error("Delete failed"); }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Delete failed");
+    }
   };
 
   const updateStatus = async (id, status) => {
@@ -59,6 +86,32 @@ export default function AdminDashboard() {
       toast.error(err.response?.data?.message || "Failed to update status");
     }
   };
+
+  const addNewProduct = async () => {
+    try {
+      setCreating(true);
+      const { data } = await api.post("/api/products");
+      toast.success("Product created — now edit its details");
+      // Refresh immediately so the placeholder product shows up in the
+      // list even before the user finishes editing it.
+      await loadAll();
+      navigate(`/admin/product/${data._id}/edit`);
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to create product");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const filteredProducts = products.filter((p) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      p.name?.toLowerCase().includes(term) ||
+      p.brand?.toLowerCase().includes(term) ||
+      p.category?.toLowerCase().includes(term)
+    );
+  });
 
   return (
     <motion.div
@@ -111,33 +164,79 @@ export default function AdminDashboard() {
         <>
           {/* Products Tab */}
           {activeTab === "products" && (
-            <motion.div
-              className="tm-product-grid"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              {products.map((p, i) => (
-                <motion.div
-                  className="tm-admin-card"
-                  key={p._id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: i * 0.03 }}
-                >
-                  <img src={p.image} alt={p.name} className="tm-admin-card-img" />
-                  <h3 className="tm-admin-card-name">{p.name}</h3>
-                  <p className="tm-admin-card-price">₹{p.price}</p>
-                  <motion.button
-                    className="tm-delete-btn"
-                    onClick={() => deleteProduct(p._id)}
-                    whileTap={{ scale: 0.96 }}
+            <>
+              <div className="tm-admin-toolbar">
+                <input
+                  type="text"
+                  className="tm-search-input"
+                  placeholder="Search products by name, brand, category..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <div className="tm-admin-toolbar-actions">
+                  <button
+                    type="button"
+                    className="tm-refresh-btn"
+                    onClick={loadAll}
+                    title="Refresh product list"
                   >
-                    Delete
-                  </motion.button>
+                    ↻ Refresh
+                  </button>
+                  <button
+                    type="button"
+                    className="tm-add-btn"
+                    onClick={addNewProduct}
+                    disabled={creating}
+                  >
+                    {creating ? "Creating..." : "+ Add Product"}
+                  </button>
+                </div>
+              </div>
+
+              {filteredProducts.length === 0 ? (
+                <p className="tm-empty-msg">
+                  {searchTerm
+                    ? `No products match "${searchTerm}".`
+                    : "No products yet. Click \"+ Add Product\" to create one."}
+                </p>
+              ) : (
+                <motion.div
+                  className="tm-product-grid"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {filteredProducts.map((p, i) => (
+                    <motion.div
+                      className="tm-admin-card"
+                      key={p._id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: i * 0.03 }}
+                    >
+                      <img src={p.image} alt={p.name} className="tm-admin-card-img" />
+                      <h3 className="tm-admin-card-name">{p.name || "(untitled)"}</h3>
+                      <p className="tm-admin-card-price">₹{p.price ?? 0}</p>
+                      <div className="tm-admin-card-actions">
+                        <button
+                          className="tm-edit-btn"
+                          onClick={() => navigate(`/admin/product/${p._id}/edit`)}
+                        >
+                          Edit
+                        </button>
+                        <motion.button
+                          className="tm-delete-btn"
+                          onClick={() => deleteProduct(p._id)}
+                          whileTap={{ scale: 0.96 }}
+                        >
+                          Delete
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  ))}
                 </motion.div>
-              ))}
-            </motion.div>
+              )}
+            </>
           )}
 
           {/* Users Tab */}
@@ -298,6 +397,63 @@ export default function AdminDashboard() {
         }
         @keyframes tm-spin { to { transform: rotate(360deg); } }
 
+        .tm-admin-toolbar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 20px;
+          flex-wrap: wrap;
+        }
+        .tm-admin-toolbar-actions {
+          display: flex;
+          gap: 10px;
+        }
+        .tm-search-input {
+          flex: 1;
+          min-width: 200px;
+          max-width: 360px;
+          background: transparent;
+          border: 1px solid var(--tm-line);
+          color: inherit;
+          padding: 10px 14px;
+          font-size: 13px;
+          outline: none;
+          transition: border-color 0.2s ease;
+        }
+        .tm-search-input:focus { border-color: var(--tm-gold); }
+        .tm-empty-msg {
+          text-align: center;
+          color: var(--tm-muted);
+          padding: 48px 0;
+          font-size: 13px;
+        }
+        .tm-refresh-btn {
+          background: transparent;
+          border: 1px solid var(--tm-line);
+          color: var(--tm-muted);
+          padding: 10px 16px;
+          font-size: 11px;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: border-color 0.2s ease, color 0.2s ease;
+        }
+        .tm-refresh-btn:hover { border-color: var(--tm-gold); color: var(--tm-gold); }
+        .tm-add-btn {
+          background: transparent;
+          border: 1px solid var(--tm-gold);
+          color: var(--tm-gold);
+          padding: 10px 20px;
+          font-size: 11px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: background 0.2s ease, color 0.2s ease;
+        }
+        .tm-add-btn:hover { background: var(--tm-gold); color: #fff; }
+        .tm-add-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
         .tm-product-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -312,6 +468,7 @@ export default function AdminDashboard() {
           height: 150px;
           object-fit: cover;
           margin-bottom: 12px;
+          background: #f2f2f2;
         }
         .tm-admin-card-name {
           font-family: "Playfair Display", serif;
@@ -327,8 +484,25 @@ export default function AdminDashboard() {
           color: var(--tm-gold);
           margin: 0 0 12px;
         }
+        .tm-admin-card-actions {
+          display: flex;
+          gap: 8px;
+        }
+        .tm-edit-btn {
+          flex: 1;
+          background: transparent;
+          border: 1px solid var(--tm-gold);
+          color: var(--tm-gold);
+          padding: 8px;
+          font-size: 10.5px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: background 0.2s ease, color 0.2s ease;
+        }
+        .tm-edit-btn:hover { background: var(--tm-gold); color: #fff; }
         .tm-delete-btn {
-          width: 100%;
+          flex: 1;
           background: transparent;
           border: 1px solid var(--tm-line);
           color: var(--tm-muted);
@@ -389,6 +563,8 @@ export default function AdminDashboard() {
         @media (max-width: 720px) {
           .tm-stats { grid-template-columns: 1fr; }
           .tm-admin-tabs { gap: 20px; }
+          .tm-admin-toolbar { flex-direction: column; align-items: stretch; }
+          .tm-search-input { max-width: none; }
         }
       `}</style>
     </motion.div>

@@ -1,4 +1,3 @@
-// backend/controllers/productController.js
 import asyncHandler from "express-async-handler";
 import Product from "../models/productModel.js";
 
@@ -43,8 +42,16 @@ export const updateProduct = asyncHandler(async (req, res) => {
 
 export const deleteProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
-  if (product) { await product.remove(); res.json({ message: "Product removed" }); } else { res.status(404); throw new Error("Product not found"); }
+  if (product) {
+    // product.remove() was removed in Mongoose 7+. Use deleteOne instead.
+    await Product.deleteOne({ _id: product._id });
+    res.json({ message: "Product removed" });
+  } else {
+    res.status(404);
+    throw new Error("Product not found");
+  }
 });
+
 export const createProductReview = asyncHandler(async (req, res) => {
   const { rating, comment } = req.body;
   const product = await Product.findById(req.params.id);
